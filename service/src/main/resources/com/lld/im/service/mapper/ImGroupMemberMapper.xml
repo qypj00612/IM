@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lld.im.service.group.dao.mapper.ImGroupMemberMapper">
+
+    <resultMap id="BaseResultMap" type="com.lld.im.service.group.dao.ImGroupMember">
+            <id property="groupMemberId" column="group_member_id" />
+            <result property="appId" column="app_id" />
+            <result property="groupId" column="group_id" />
+            <result property="memberId" column="member_id" />
+            <result property="speakDate" column="speak_date" />
+            <result property="role" column="role" />
+            <result property="alias" column="alias" />
+            <result property="joinTime" column="join_time" />
+            <result property="leaveTime" column="leave_time" />
+            <result property="joinType" column="join_type" />
+            <result property="extra" column="extra" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        group_member_id,app_id,group_id,member_id,speak_date,role,
+        alias,join_time,leave_time,join_type,extra
+    </sql>
+    <select id="getGroupMember" resultType="com.lld.im.service.group.model.dto.GroupMemberDTO">
+        select
+            group_id,
+            member_id,
+            role,
+            speak_date,
+            alias,
+            join_time,
+            leave_time,
+            join_type,
+            extra
+        from im_group_member
+        where app_id=#{appId}
+        and group_id=#{groupId}
+        and role!=3
+    </select>
+
+    <select id="getJoined" resultType="java.lang.String">
+        select group_id
+        from im_group_member
+        where app_id=#{appId}
+          and member_id=#{memberId}
+          and role!=3
+    </select>
+</mapper>

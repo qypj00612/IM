@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lld.im.service.user.dao.mapper.ImUserDataMapper">
+
+    <resultMap id="BaseResultMap" type="com.lld.im.service.user.dao.ImUserData">
+            <id property="userId" column="user_id" />
+            <id property="appId" column="app_id" />
+            <result property="nickname" column="nickname" />
+            <result property="password" column="password" />
+            <result property="photo" column="photo" />
+            <result property="userSex" column="user_sex" />
+            <result property="birthDay" column="birth_day" />
+            <result property="selfSignature" column="self_signature" />
+            <result property="friendAllowType" column="friend_allow_type" />
+            <result property="forbiddenFlag" column="forbidden_flag" />
+            <result property="type" column="type" />
+            <result property="silentFlag" column="silent_flag" />
+            <result property="delFlag" column="del_flag" />
+            <result property="extra" column="extra" />
+    </resultMap>
+
+</mapper>

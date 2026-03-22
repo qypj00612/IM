@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lld.im.service.friendship.dao.mapper.ImFriendshipMapper">
+
+    <resultMap id="BaseResultMap" type="com.lld.im.service.friendship.dao.ImFriendship">
+            <id property="appId" column="app_id" />
+            <id property="fromId" column="from_id" />
+            <id property="toId" column="to_id" />
+            <result property="remark" column="remark" />
+            <result property="status" column="status" />
+            <result property="black" column="black" />
+            <result property="createTime" column="create_time" />
+            <result property="friendSequence" column="friend_sequence" />
+            <result property="blackSequence" column="black_sequence" />
+            <result property="addSource" column="add_source" />
+            <result property="extra" column="extra" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        app_id,from_id,to_id,remark,status,black,
+        create_time,friend_sequence,black_sequence,add_source,extra
+    </sql>
+
+    <select id="singleCheck" resultType="com.lld.im.service.friendship.model.resp.CheckFriendShipResp">
+        select
+            from_id as fromId
+            ,to_id as toId
+            ,if(status = 1, 1, 0) as status
+        from im_friendship
+        where from_id = #{fromId}
+        and app_id = #{appId}
+        and to_id in
+            <foreach collection="toIds" index="index" item="id" separator="," close=")" open="(">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="bothCheck" resultType="com.lld.im.service.friendship.model.resp.CheckFriendShipResp">
+        select
+            a.fromId,
+            a.toId,
+            case
+                when if(a.status = 1, 1, 0) = 1 and if(b.status = 1, 1, 0) = 1 then 1
+                when if(a.status = 1, 1, 0) = 1 and if(b.status = 1, 1, 0) = 0 then 2
+                when if(a.status = 1, 1, 0) = 0 and if(b.status = 1, 1, 0) = 1 then 3
+                else 4
+            end as status
+        from (
+            select
+                from_id as fromId,
+                to_id as toId,
+                if(status=1, 1, 0) as status
+            from im_friendship
+            where from_id=#{fromId}
+            and app_id=#{appId}
+            and to_id in
+                <foreach collection="toIds" index="index" open="(" separator="," close=")" item="id">
+                    #{id}
+                </foreach>
+        )
+        as a
+        left join (
+            select
+                from_id as fromId,
+                to_id as toId,
+                if(status=1, 1, 0) as status
+            from im_friendship
+            where to_id=#{fromId}
+            and app_id=#{appId}
+            and from_id in
+                <foreach collection="toIds" item="id" close=")" separator="," open="(" index="index">
+                    #{id}
+                </foreach>
+        )
+        as b
+        on b.fromId=a.toId and a.fromId=b.toId
+    </select>
+
+    <select id="singleBlack" resultType="com.lld.im.service.friendship.model.resp.CheckFriendShipResp">
+        select
+            from_id as fromId
+            ,to_id as toId
+            ,if(black = 1, 1, 0) as status
+        from im_friendship
+        where from_id = #{fromId}
+        and app_id = #{appId}
+        and to_id in
+        <foreach collection="toIds" index="index" item="id" separator="," close=")" open="(">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="bothBlack" resultType="com.lld.im.service.friendship.model.resp.CheckFriendShipResp">
+        select
+            a.fromId,
+            a.toId,
+            case
+                when if(a.black = 1, 1, 0) = 1 and if(b.black = 1, 1, 0) = 1 then 1
+                when if(a.black = 1, 1, 0) = 1 and if(b.black = 1, 1, 0) = 0 then 2
+                when if(a.black = 1, 1, 0) = 0 and if(b.black = 1, 1, 0) = 1 then 3
+                else 4
+            end as status
+        from (
+            select
+                from_id as fromId,
+                to_id as toId,
+                if(black=2, 1, 0) as black
+            from im_friendship
+            where from_id=#{fromId}
+            and app_id=#{appId}
+            and to_id in
+            <foreach collection="toIds" index="index" open="(" separator="," close=")" item="id">
+                #{id}
+            </foreach>
+        )
+        as a
+        left join (
+        select
+            from_id as fromId,
+            to_id as toId,
+            if(black=2, 1, 0) as black
+            from im_friendship
+            where to_id=#{fromId}
+            and app_id=#{appId}
+            and from_id in
+            <foreach collection="toIds" item="id" close=")" separator="," open="(" index="index">
+                #{id}
+            </foreach>
+        )
+        as b
+        on b.fromId=a.toId and a.fromId=b.toId
+    </select>
+
+</mapper>

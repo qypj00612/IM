@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lld.im.service.friendship.dao.mapper.ImFriendshipGroupMemberMapper">
+
+    <resultMap id="BaseResultMap" type="com.lld.im.service.friendship.dao.ImFriendshipGroupMember">
+            <id property="groupId" column="group_id" />
+            <id property="toId" column="to_id" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        group_id,to_id
+    </sql>
+</mapper>
