@@ -1,0 +1,32 @@
+package com.lld.im.tcp.publish;
+
+import com.alibaba.fastjson.JSONObject;
+import com.lld.im.codec.config.BootstrapConfig;
+import com.lld.im.tcp.utils.MqFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+
+@Slf4j
+public class MqMessageProducer {
+
+    private final DefaultMQProducer producer;
+
+    public MqMessageProducer(BootstrapConfig.TcpConfig config) {
+        producer = MqFactory.getProducer(config);
+    }
+
+    public void sendMessage(String topic, String tag, Object message){
+        //DefaultMQProducer producer = MqFactory.getProducer(config);
+        Message msg = new Message(topic,tag, JSONObject.toJSONString(message).getBytes());
+        try {
+            producer.send(msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("消息发送失败");
+        }
+    }
+}

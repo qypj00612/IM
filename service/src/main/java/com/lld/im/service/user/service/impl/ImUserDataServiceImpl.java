@@ -4,16 +4,12 @@ package com.lld.im.service.user.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lld.im.common.ResponseVO;
 import com.lld.im.service.user.dao.ImUserData;
 import com.lld.im.service.user.dao.mapper.ImUserDataMapper;
-import com.lld.im.service.user.enums.UserErrorCode;
-import com.lld.im.service.user.model.req.DeleteUserReq;
-import com.lld.im.service.user.model.req.GetUserInfoReq;
-import com.lld.im.service.user.model.req.ImportUserReq;
-import com.lld.im.service.user.model.req.ModifyUserInfoReq;
+import com.lld.im.common.enums.user.UserErrorCode;
+import com.lld.im.service.user.model.req.*;
 import com.lld.im.service.user.model.resp.DeleteUserResp;
 import com.lld.im.service.user.model.resp.GetUserInfoResp;
 import com.lld.im.service.user.model.resp.ImportUserResp;
@@ -159,5 +155,10 @@ public class ImUserDataServiceImpl extends ServiceImpl<ImUserDataMapper, ImUserD
             return ResponseVO.successResponse("修改成功");
         }
         return ResponseVO.errorResponse(UserErrorCode.MODIFY_USER_ERROR);
+    }
+
+    @Override
+    public ResponseVO login(LoginReq req) {
+        return ResponseVO.successResponse();
     }
 }

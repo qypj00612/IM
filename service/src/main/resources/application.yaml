@@ -28,3 +28,9 @@ logging:
   level:
     com.lld.im.service.user.dao: debug
     com.baomidou.mybatisplus: debug
+
+nacos:
+  address: 192.168.181.128.8848
+  namespace: c65a45b8-9b55-4b53-9e10-fbab776f8db6
+  username: nacos
+  password: nacos

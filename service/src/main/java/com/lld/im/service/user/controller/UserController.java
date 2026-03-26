@@ -3,6 +3,7 @@ package com.lld.im.service.user.controller;
 import com.lld.im.common.ResponseVO;
 import com.lld.im.service.user.model.req.DeleteUserReq;
 import com.lld.im.service.user.model.req.ImportUserReq;
+import com.lld.im.service.user.model.req.LoginReq;
 import com.lld.im.service.user.model.resp.DeleteUserResp;
 import com.lld.im.service.user.model.resp.ImportUserResp;
 import com.lld.im.service.user.service.ImUserDataService;
@@ -28,6 +29,11 @@ public class UserController {
     public ResponseVO<DeleteUserResp> deleteUser(@RequestBody @Validated DeleteUserReq req) {
         DeleteUserResp deleteUserResp = imUserDataService.deleteUser(req);
         return ResponseVO.successResponse(deleteUserResp);
+    }
+
+    @RequestMapping("login")
+    public ResponseVO login(@RequestBody @Validated LoginReq req) {
+        return imUserDataService.login(req);
     }
     
     @GetMapping("hello")

@@ -3,10 +3,7 @@ package com.lld.im.service.user.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lld.im.common.ResponseVO;
 import com.lld.im.service.user.dao.ImUserData;
-import com.lld.im.service.user.model.req.DeleteUserReq;
-import com.lld.im.service.user.model.req.GetUserInfoReq;
-import com.lld.im.service.user.model.req.ImportUserReq;
-import com.lld.im.service.user.model.req.ModifyUserInfoReq;
+import com.lld.im.service.user.model.req.*;
 import com.lld.im.service.user.model.resp.DeleteUserResp;
 import com.lld.im.service.user.model.resp.GetUserInfoResp;
 import com.lld.im.service.user.model.resp.ImportUserResp;
@@ -27,4 +24,6 @@ public interface ImUserDataService extends IService<ImUserData> {
     DeleteUserResp deleteUser(DeleteUserReq req);
 
     ResponseVO modifyUserInfo(ModifyUserInfoReq req);
+
+    ResponseVO login(LoginReq req);
 }

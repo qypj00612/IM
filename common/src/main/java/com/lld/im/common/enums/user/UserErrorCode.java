@@ -1,4 +1,4 @@
-package com.lld.im.service.user.enums;
+package com.lld.im.common.enums.user;
 
 import com.lld.im.common.enums.ApplicationExceptionEnum;
 import lombok.Getter;

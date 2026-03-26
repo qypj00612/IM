@@ -1,6 +1,11 @@
 package com.lld.im.tcp.server;
 
+import com.lld.im.codec.MessageDecode;
+import com.lld.im.codec.MessageEncode;
 import com.lld.im.codec.config.BootstrapConfig;
+import com.lld.im.tcp.handler.HearBeatHandler;
+import com.lld.im.tcp.handler.NettyServerHandler;
+import com.lld.im.tcp.publish.MqMessageProducer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -15,8 +20,12 @@ public class ImServer {
 
     private final ServerBootstrap server;
 
+    // 生产者
+    private final MqMessageProducer producer;
+
     public ImServer(BootstrapConfig.TcpConfig config) {
         this.port = config.getTcpPort();
+        this.producer = new MqMessageProducer(config);
 
         NioEventLoopGroup boss = new NioEventLoopGroup(config.getBossThreadSize());
         NioEventLoopGroup worker = new NioEventLoopGroup(config.getWorkerThreadSize());
@@ -33,7 +42,11 @@ public class ImServer {
         server.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
-
+                ch.pipeline().addLast(new MessageDecode());
+                ch.pipeline().addLast(new MessageEncode());
+                //ch.pipeline().addLast(new IdleStateHandler(0,0,1));
+                ch.pipeline().addLast(new HearBeatHandler(config.getHearBeatTime()));
+                ch.pipeline().addLast(new NettyServerHandler(config.getBrokerId(),producer));
             }
         });
 

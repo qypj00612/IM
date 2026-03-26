@@ -3,17 +3,14 @@ package com.lld.im.service.user.controller;
 
 import com.lld.im.common.ResponseVO;
 import com.lld.im.service.user.dao.ImUserData;
-import com.lld.im.service.user.enums.UserErrorCode;
+import com.lld.im.common.enums.user.UserErrorCode;
 import com.lld.im.service.user.model.req.GetSingleUserInfoReq;
 import com.lld.im.service.user.model.req.GetUserInfoReq;
 import com.lld.im.service.user.model.req.ModifyUserInfoReq;
 import com.lld.im.service.user.model.resp.GetUserInfoResp;
 import com.lld.im.service.user.service.ImUserDataService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;

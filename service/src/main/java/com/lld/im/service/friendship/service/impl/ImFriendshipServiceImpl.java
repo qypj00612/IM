@@ -22,7 +22,7 @@ import com.lld.im.service.friendship.model.resp.ImportFriendshipResp;
 import com.lld.im.service.friendship.service.ImFriendshipRequestService;
 import com.lld.im.service.friendship.service.ImFriendshipService;
 import com.lld.im.service.user.dao.ImUserData;
-import com.lld.im.service.user.enums.UserErrorCode;
+import com.lld.im.common.enums.user.UserErrorCode;
 import com.lld.im.service.user.service.ImUserDataService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
