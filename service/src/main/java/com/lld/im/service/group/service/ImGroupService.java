@@ -32,4 +32,5 @@ public interface ImGroupService extends IService<ImGroup> {
     ResponseVO transfer(TransferGroupReq req);
 
     ResponseVO mute(MuteGroupReq req);
+
 }

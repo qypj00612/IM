@@ -93,6 +93,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
                     userClientDto
             );
 
+            log.info("用户登录: {}", userSession);
+
         } else if (command == SystemCommand.LOGOUT.getCommand()) {
             // 将 channel 和会话信息从 session 管理和 redis 中移除
             SessionSocketHandler.loginOut((NioSocketChannel) ctx.channel());

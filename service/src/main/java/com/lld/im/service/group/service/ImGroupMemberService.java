@@ -38,4 +38,8 @@ public interface ImGroupMemberService extends IService<ImGroupMember> {
     ResponseVO doRemoveGroupMember(String groupId, Integer appId, String memberId);
 
     ResponseVO speak(MuteMemberReq req);
+
+    List<String> getGroupMemberIds(String groupId, Integer appId);
+
+    List<String> getGroupManagers(String groupId, Integer appId);
 }

@@ -2,10 +2,15 @@ package com.lld.im.service.user.service.impl;
 
 
 import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lld.im.codec.pack.user.UserModifyPack;
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.config.AppConfig;
+import com.lld.im.common.constant.Constants;
+import com.lld.im.common.enums.command.user.UserEventCommand;
 import com.lld.im.service.user.dao.ImUserData;
 import com.lld.im.service.user.dao.mapper.ImUserDataMapper;
 import com.lld.im.common.enums.user.UserErrorCode;
@@ -14,7 +19,10 @@ import com.lld.im.service.user.model.resp.DeleteUserResp;
 import com.lld.im.service.user.model.resp.GetUserInfoResp;
 import com.lld.im.service.user.model.resp.ImportUserResp;
 import com.lld.im.service.user.service.ImUserDataService;
+import com.lld.im.service.utils.CallBackUtil;
+import com.lld.im.service.utils.MessageProducer;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,10 +37,17 @@ import java.util.stream.Collectors;
 */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ImUserDataServiceImpl extends ServiceImpl<ImUserDataMapper, ImUserData>
     implements ImUserDataService {
 
     private final ImUserDataMapper imUserDataMapper;
+
+    private final AppConfig appConfig;
+
+    private final CallBackUtil callBackUtil;
+
+    private final MessageProducer messageProducer;
 
     @Override
     public ImportUserResp importUser(ImportUserReq userData) {
@@ -152,6 +167,27 @@ public class ImUserDataServiceImpl extends ServiceImpl<ImUserDataMapper, ImUserD
 
         int updated = imUserDataMapper.update(update, eq);
         if (updated > 0) {
+
+            // 通知 tcp
+            UserModifyPack userModifyPack = BeanUtil.copyProperties(req, UserModifyPack.class);
+
+            messageProducer.sendToUser(req.getUserId()
+                    , req.getClientType()
+                    , req.getImei()
+                    , UserEventCommand.USER_MODIFY
+                    , userModifyPack
+                    , req.getAppId()
+                    , Constants.RocketConstants.UserService2Im);
+
+            log.info("已通知tcp用户信息修改");
+
+            // 回调
+            if(appConfig.isModifyUserAfterCallback()){
+                callBackUtil.callBack(req.getAppId()
+                        , Constants.CallBackCommand.ModifyUserAfter
+                        , JSONObject.toJSONString(req));
+            }
+
             return ResponseVO.successResponse("修改成功");
         }
         return ResponseVO.errorResponse(UserErrorCode.MODIFY_USER_ERROR);

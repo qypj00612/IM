@@ -11,6 +11,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: Ypj.,?/0102
+  data:
+    redis:
+      host: 192.168.181.128
+      port: 6379
+      password: 123
 
 mybatis-plus:
   mapper-locations: classpath:**/mapper/*.xml
@@ -29,8 +34,44 @@ logging:
     com.lld.im.service.user.dao: debug
     com.baomidou.mybatisplus: debug
 
-nacos:
-  address: 192.168.181.128.8848
+rocketmq:
+  name-server: 192.168.181.128:9876
+  producer:
+    group: default
+    send-message-timeout: 15000  # 延长到15秒，适配容器
+    retry-times-when-send-failed: 5  # 增加重试
+    retry-times-when-send-async-failed: 5
+    max-message-size: 4194304  # 增大消息体限制（避免大消息被拒绝）
+  consumer:
+    pull-batch-size: 10000
+
+config:
+  privateKey: 123456
+  server-addr: 192.168.181.128:8848
   namespace: c65a45b8-9b55-4b53-9e10-fbab776f8db6
   username: nacos
   password: nacos
+  im-route-way: 3 # 1是随机 2是轮询 3是hash
+  consistent-hash-way: 1 # 具体的hash算法 1是TreeMap 2是其他
+  call-back-url: http://127.0.0.1:8000/callback
+  modify-user-after-call-back: true
+  addFriendAfterCallback: false
+  addFriendBeforeCallback: false
+  modifyFriendAfterCallback: false
+  deleteFriendAfterCallback: false
+  addFriendShipBlackAfterCallback: false
+  deleteFriendShipBlackAfterCallback: false
+  createGroupAfterCallback: false
+  modifyGroupAfterCallback: false
+  destroyGroupAfterCallback: false
+  deleteGroupMemberAfterCallback: false
+  addGroupMemberBeforeCallback: false
+  addGroupMemberAfterCallback: false
+
+httpclient:
+  maxTotal: 100
+  defaultMaxPerRoute: 50
+  connectTimeout: 2000
+  connectionRequestTimeout: 2000
+  socketTimeout: 5000
+  staleConnectionCheckEnabled: true

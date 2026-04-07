@@ -1,7 +1,12 @@
 package com.lld.im.tcp.receiver;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.lld.im.codec.config.BootstrapConfig;
+import com.lld.im.codec.pack.MessagePack;
 import com.lld.im.common.constant.Constants;
+import com.lld.im.tcp.receiver.process.BaseProcess;
+import com.lld.im.tcp.receiver.process.ProcessFactory;
 import com.lld.im.tcp.utils.MqFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -29,11 +34,11 @@ public class MqMessageReceiver {
                 throw new Exception();
             }
             consumer.subscribe(
-                    Constants.RocketConstants.SERVICE_TO_IM,  // 你只用一个TOPIC
-                    config.getIm().getBrokerId()+ "||"
-                            +Constants.RocketConstants.FriendShip2Im+"||"
-                            +Constants.RocketConstants.GroupService2Im+"||"
-                            +Constants.RocketConstants.MessageService2Im
+                    Constants.RocketConstants.SERVICE_TO_IM+"_"+config.getIm().getBrokerId(),  // 你只用一个TOPIC
+                    Constants.RocketConstants.FriendShip2Im+" || "
+                            +Constants.RocketConstants.GroupService2Im+" || "
+                            +Constants.RocketConstants.MessageService2Im+" || "
+                            +Constants.RocketConstants.UserService2Im
             );
 
             broadConsumer.subscribe(
@@ -43,10 +48,22 @@ public class MqMessageReceiver {
 
             consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
                 for (MessageExt msg : msgs) {
-                    String topic = msg.getTopic();
-                    String tag = msg.getTags();
-                    String body = new String(msg.getBody());
-                    log.info("收到消息 tag = {}" ,tag);
+                    try {
+                        String tag = msg.getTags();
+                        String data = new String(msg.getBody());
+                        MessagePack messagePack = JSONObject.parseObject(data, MessagePack.class);
+//                    if(tag.equals(Constants.RocketConstants.GroupService2Im)){
+//
+//                    }else if(tag.equals(Constants.RocketConstants.FriendShip2Im)){
+//
+//                    }
+                        BaseProcess process = ProcessFactory.getProcess(messagePack.getCommand());
+                        process.process(messagePack);
+                        log.info("收到消息 tag = {}, data = {}" ,tag ,messagePack);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        log.error("MQ接收消息异常");
+                    }
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             });

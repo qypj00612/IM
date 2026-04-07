@@ -12,4 +12,8 @@ public class RequestBase {
     @NotNull(message = "operator不能为空")
     // 操作者的id
     private String operator;
+
+    private Integer clientType;
+
+    private String imei;
 }

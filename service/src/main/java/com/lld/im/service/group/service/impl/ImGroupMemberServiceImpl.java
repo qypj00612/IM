@@ -3,10 +3,14 @@ package com.lld.im.service.group.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.config.AppConfig;
+import com.lld.im.common.constant.Constants;
+import com.lld.im.common.enums.command.Command;
 import com.lld.im.common.exception.ApplicationException;
 import com.lld.im.service.group.dao.ImGroup;
 import com.lld.im.service.group.dao.ImGroupMember;
@@ -14,6 +18,7 @@ import com.lld.im.service.group.enums.AddGroupMemberEnum;
 import com.lld.im.service.group.enums.GroupErrorCode;
 import com.lld.im.service.group.enums.GroupMemberRoleEnum;
 import com.lld.im.service.group.enums.GroupTypeEnum;
+import com.lld.im.service.group.model.callback.AddMemberAfterCallback;
 import com.lld.im.service.group.model.dto.GroupMemberDTO;
 import com.lld.im.service.group.model.req.*;
 import com.lld.im.service.group.model.resp.AddGroupMemberResp;
@@ -21,8 +26,10 @@ import com.lld.im.service.group.model.resp.GetRoleResp;
 import com.lld.im.service.group.service.ImGroupMemberService;
 import com.lld.im.service.group.dao.mapper.ImGroupMemberMapper;
 import com.lld.im.service.group.service.ImGroupService;
+import com.lld.im.service.utils.CallBackUtil;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -39,10 +46,15 @@ import java.util.Objects;
 */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ImGroupMemberServiceImpl extends ServiceImpl<ImGroupMemberMapper, ImGroupMember>
     implements ImGroupMemberService{
 
     private final ImGroupMemberMapper imGroupMemberMapper;
+
+    private final AppConfig appConfig;
+
+    private final CallBackUtil callBackUtil;
 
     @Override
     public ResponseVO speak(MuteMemberReq req) {
@@ -75,6 +87,16 @@ public class ImGroupMemberServiceImpl extends ServiceImpl<ImGroupMemberMapper, I
         }
         imGroupMemberMapper.updateById(imGroupMember);
         return ResponseVO.successResponse();
+    }
+
+    @Override
+    public List<String> getGroupMemberIds(String groupId, Integer appId) {
+        return imGroupMemberMapper.getGroupMemberIds(groupId,appId);
+    }
+
+    @Override
+    public List<String> getGroupManagers(String groupId, Integer appId) {
+        return imGroupMemberMapper.getGroupManagers(groupId,appId);
     }
 
     @Resource
@@ -183,6 +205,13 @@ public class ImGroupMemberServiceImpl extends ServiceImpl<ImGroupMemberMapper, I
         return imGroupMemberMapper.getJoined(memberId,appId);
     }
 
+    /**
+     * 转让群
+     * @param groupId 群Id
+     * @param oldOwner 之前的群主
+     * @param newOwner 之后的群主
+     * @param appId appId
+     */
     @Override
     public void transfer(String groupId,String oldOwner, String newOwner, Integer appId) {
         LambdaUpdateWrapper<ImGroupMember> eq = new LambdaUpdateWrapper<ImGroupMember>()
@@ -212,14 +241,75 @@ public class ImGroupMemberServiceImpl extends ServiceImpl<ImGroupMemberMapper, I
         if(group==null){
             throw new ApplicationException(GroupErrorCode.GROUP_IS_NOT_EXIST);
         }
+
+        List<GroupMemberDTO> memberDTOS = req.getMembers();
+
+        // 添加之前的回调
+        if(appConfig.isAddGroupMemberBeforeCallback()){
+            ResponseVO responseVO = callBackUtil.beforeCallBack(req.getAppId()
+                    , Constants.CallBackCommand.GroupMemberAddBefore
+                    , JSONObject.toJSONString(req));
+            if(!responseVO.isOk()){
+                return responseVO;
+            }
+            try {
+                memberDTOS = JSONObject.parseArray(JSONObject.toJSONString(responseVO.getData()), GroupMemberDTO.class);
+            }catch (Exception e){
+                e.printStackTrace();
+                log.error("回调失败");
+            }
+        }
+
         if(group.getGroupType()== GroupTypeEnum.PUBLIC.getCode()){
             throw new ApplicationException(GroupErrorCode.PUBLIC_GROUP_CAN_NOT_ADD);
         }
 
-        for(GroupMemberDTO memberDTO:req.getMembers()){
-            ImGroupMemberServiceImpl proxy = (ImGroupMemberServiceImpl)AopContext.currentProxy();
-            proxy.doAddGroupMember(req.getGroupId(), memberDTO,req.getAppId());
+        List<AddGroupMemberResp> resp = new ArrayList<>();
+
+        for(GroupMemberDTO memberDTO:memberDTOS){
+            AddGroupMemberResp addGroupMemberResp = new AddGroupMemberResp();
+            addGroupMemberResp.setMemberId(memberDTO.getMemberId());
+
+            try {
+                // 添加群成员
+                ImGroupMemberServiceImpl proxy = (ImGroupMemberServiceImpl)AopContext.currentProxy();
+                proxy.doAddGroupMember(req.getGroupId(), memberDTO,req.getAppId());
+
+                addGroupMemberResp.setResult(AddGroupMemberEnum.SUCCESS.getCode());
+                addGroupMemberResp.setResultMessage(AddGroupMemberEnum.SUCCESS.getDesc());
+
+                resp.add(addGroupMemberResp);
+            } catch (ApplicationException e) {
+
+                if(e.getCode()==AddGroupMemberEnum.INSERT_ERROR.getCode()){
+                    addGroupMemberResp.setResult(AddGroupMemberEnum.INSERT_ERROR.getCode());
+                    addGroupMemberResp.setResultMessage(AddGroupMemberEnum.INSERT_ERROR.getDesc());
+                }else{
+                    addGroupMemberResp.setResult(AddGroupMemberEnum.HAVE_EXIST.getCode());
+                    addGroupMemberResp.setResultMessage(AddGroupMemberEnum.HAVE_EXIST.getDesc());
+                }
+
+            } catch (Exception e){
+                addGroupMemberResp.setResult(AddGroupMemberEnum.INSERT_ERROR.getCode());
+                addGroupMemberResp.setResultMessage(AddGroupMemberEnum.INSERT_ERROR.getDesc());
+            }finally {
+                resp.add(addGroupMemberResp);
+            }
         }
+
+        // 添加之后的回调
+        if(appConfig.isAddGroupMemberAfterCallback()){
+            AddMemberAfterCallback callback = new AddMemberAfterCallback();
+            callback.setGroupId(req.getGroupId());
+            callback.setGroupType(group.getGroupType());
+            callback.setOperator(req.getOperator());
+            callback.setMemberId(resp);
+
+            callBackUtil.callBack(req.getAppId()
+                    , Constants.CallBackCommand.GroupMemberAddAfter
+                    , JSONObject.toJSONString(callback));
+        }
+
         return ResponseVO.successResponse();
     }
 
@@ -250,7 +340,18 @@ public class ImGroupMemberServiceImpl extends ServiceImpl<ImGroupMemberMapper, I
             }
         }
 
-        return doRemoveGroupMember(req.getGroupId(),req.getAppId(),req.getMemberId());
+        ResponseVO responseVO = doRemoveGroupMember(req.getGroupId(), req.getAppId(), req.getMemberId());
+
+        // 删除之后回调
+        if(responseVO.isOk()){
+            if(appConfig.isDeleteGroupMemberAfterCallback()){
+                callBackUtil.callBack(req.getAppId()
+                        , Constants.CallBackCommand.GroupMemberDeleteAfter
+                        , JSONObject.toJSONString(req));
+            }
+        }
+
+        return responseVO;
     }
 
     public ResponseVO doRemoveGroupMember(String groupId, Integer appId, String memberId) {

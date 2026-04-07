@@ -5,16 +5,23 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lld.im.codec.pack.group.*;
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.config.AppConfig;
+import com.lld.im.common.constant.Constants;
+import com.lld.im.common.enums.command.group.GroupEventCommand;
 import com.lld.im.common.exception.ApplicationException;
+import com.lld.im.common.model.ClientInfo;
 import com.lld.im.service.group.dao.ImGroup;
 import com.lld.im.service.group.dao.ImGroupMember;
 import com.lld.im.service.group.enums.GroupErrorCode;
 import com.lld.im.service.group.enums.GroupMemberRoleEnum;
 import com.lld.im.service.group.enums.GroupStatusEnum;
 import com.lld.im.service.group.enums.GroupTypeEnum;
+import com.lld.im.service.group.model.callback.DestroyGroupCallBack;
 import com.lld.im.service.group.model.dto.GroupMemberDTO;
 import com.lld.im.service.group.model.req.*;
 import com.lld.im.service.group.model.resp.GetGroupResp;
@@ -22,12 +29,15 @@ import com.lld.im.service.group.model.resp.GetRoleResp;
 import com.lld.im.service.group.service.ImGroupMemberService;
 import com.lld.im.service.group.service.ImGroupService;
 import com.lld.im.service.group.dao.mapper.ImGroupMapper;
+import com.lld.im.service.utils.CallBackUtil;
+import com.lld.im.service.utils.GroupMessageProducer;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.awt.*;
 import java.util.List;
 
 /**
@@ -40,7 +50,12 @@ import java.util.List;
 public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
     implements ImGroupService{
 
+    private final AppConfig appConfig;
+    private final CallBackUtil callBackUtil;
+
     private final ImGroupMapper imGroupMapper;
+
+    private final GroupMessageProducer groupMessageProducer;
 
     @Resource
     @Lazy
@@ -133,6 +148,18 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
             imGroupMemberService.doAddGroupMember(req.getGroupId(), memberDTO, req.getAppId());
         }
 
+        if(appConfig.isCreateGroupAfterCallback()){
+            callBackUtil.callBack(req.getAppId(), Constants.CallBackCommand.CreateGroupAfter, JSONObject.toJSONString(imGroup));
+        }
+
+        // 通知tcp
+        CreateGroupPack pack = BeanUtil.copyProperties(imGroup, CreateGroupPack.class);
+        groupMessageProducer.send(req.getOperator(),
+                GroupEventCommand.CREATED_GROUP,
+                pack,
+                new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()),
+                Constants.RocketConstants.GroupService2Im);
+
         return ResponseVO.successResponse();
     }
 
@@ -165,6 +192,25 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
         if(count!=1){
             throw new ApplicationException(GroupErrorCode.UPDATE_GROUP_BASE_INFO_ERROR);
         }
+
+        // 通知tcp
+        UpdateGroupInfoPack pack = BeanUtil.copyProperties(update, UpdateGroupInfoPack.class);
+        groupMessageProducer.send(req.getOperator(),
+                GroupEventCommand.UPDATED_GROUP,
+                pack,
+                new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()),
+                Constants.RocketConstants.GroupService2Im);
+
+        // 回调
+        if(appConfig.isModifyGroupAfterCallback()){
+            LambdaQueryWrapper<ImGroup> eq = new LambdaQueryWrapper<ImGroup>()
+                    .eq(ImGroup::getGroupId, update.getGroupId())
+                    .eq(ImGroup::getAppId, update.getAppId());
+
+            callBackUtil.callBack(req.getAppId(), Constants.CallBackCommand.UpdateGroupAfter
+                    , JSONObject.toJSONString(imGroupMapper.selectOne(eq)));
+        }
+
         return ResponseVO.successResponse();
     }
 
@@ -219,6 +265,14 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
         imGroup.setGroupId(req.getGroupId());
         imGroupMapper.updateById(imGroup);
 
+        // 通知 tcp
+        MuteGroupPack pack = BeanUtil.copyProperties(req, MuteGroupPack.class);
+        groupMessageProducer.send(req.getOperator(),
+                GroupEventCommand.MUTE_GROUP,
+                pack,
+                new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()),
+                Constants.RocketConstants.GroupService2Im);
+
         return ResponseVO.successResponse();
     }
 
@@ -251,6 +305,24 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
             throw new ApplicationException(GroupErrorCode.DESTROY_ERROR);
         }
 
+        // 通知 tcp
+        DestroyGroupPack pack = BeanUtil.copyProperties(req, DestroyGroupPack.class);
+        groupMessageProducer.send(req.getOperator(),
+                GroupEventCommand.DESTROY_GROUP,
+                pack,
+                new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()),
+                Constants.RocketConstants.GroupService2Im);
+
+
+        // 回调
+        if(appConfig.isDestroyGroupAfterCallback()){
+            DestroyGroupCallBack dto = new DestroyGroupCallBack();
+            dto.setGroupId(group.getGroupId());
+            callBackUtil.callBack(req.getAppId()
+                    , Constants.CallBackCommand.DestroyGroupAfter
+                    , JSONObject.toJSONString(dto));
+        }
+
         return ResponseVO.successResponse();
     }
 
@@ -272,6 +344,15 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
         group.setOwnerId(req.getOwnerId());
         imGroupMapper.updateById(group);
         imGroupMemberService.transfer(group.getGroupId(),req.getOperator(),req.getOwnerId(),req.getAppId());
+
+        // 通知tcp
+        TransferGroupPack pack = BeanUtil.copyProperties(req, TransferGroupPack.class);
+        groupMessageProducer.send(req.getOperator(),
+                GroupEventCommand.TRANSFER_GROUP,
+                pack,
+                new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()),
+                Constants.RocketConstants.GroupService2Im);
+
         return ResponseVO.successResponse();
     }
 }

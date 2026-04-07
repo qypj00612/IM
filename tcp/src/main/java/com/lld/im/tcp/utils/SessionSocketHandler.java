@@ -29,6 +29,7 @@ public class SessionSocketHandler {
         userClientDto.setUserId(userId);
         userClientDto.setAppId(appId);
         userClientDto.setClientType(clientType);
+        userClientDto.setImei(imei);
 
         socketMap.put(userClientDto, socketChannel);
     }

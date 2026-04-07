@@ -17,6 +17,10 @@ public interface ImGroupMemberMapper extends BaseMapper<ImGroupMember> {
     List<GroupMemberDTO> getGroupMember(String groupId, Integer appId);
 
     List<String> getJoined(String memberId, Integer appId);
+
+    List<String> getGroupMemberIds(String groupId, Integer appId);
+
+    List<String> getGroupManagers(String groupId, Integer appId);
 }
 
 
