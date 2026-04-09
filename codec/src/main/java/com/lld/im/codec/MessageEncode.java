@@ -17,7 +17,7 @@ public class MessageEncode extends MessageToByteEncoder{
             out.writeInt(messagePack.getCommand());
             out.writeInt(bytes.length);
             out.writeBytes(bytes);
-            log.info("向客户端发送消息");
+            log.info("向客户端:{}发送消息",messagePack.getToId());
         }
     }
 

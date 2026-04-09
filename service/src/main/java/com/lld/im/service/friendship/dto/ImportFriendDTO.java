@@ -1,6 +1,6 @@
 package com.lld.im.service.friendship.dto;
 
-import com.lld.im.service.friendship.enums.FriendshipStatusEnum;
+import com.lld.im.common.enums.friendship.FriendshipStatusEnum;
 import lombok.Data;
 
 @Data

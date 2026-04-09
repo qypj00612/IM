@@ -29,7 +29,7 @@ public interface ImFriendshipService extends IService<ImFriendship> {
 
     ResponseVO getAllFriend(GetAllFriendshipReq getAllFriendReq);
 
-    ResponseVO getRelationShip(GetRelationshipReq getRelationshipReq);
+    ResponseVO<ImFriendship> getRelationShip(GetRelationshipReq getRelationshipReq);
 
     List<CheckFriendShipResp> checkFriendShip(CheckFriendShipReq checkFriendShipReq);
 

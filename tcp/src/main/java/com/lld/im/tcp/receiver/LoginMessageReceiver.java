@@ -41,7 +41,19 @@ public class LoginMessageReceiver implements MessageListenerConcurrently {
     public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
         for(MessageExt msg : msgs){
             String s = new String(msg.getBody());
-            UserClientDto userClientDto = JSONObject.parseObject(s, UserClientDto.class);
+            JSONObject jsonObject = JSONObject.parseObject(s);
+            UserClientDto userClientDto = jsonObject.toJavaObject(UserClientDto.class);
+    //        UserClientDto userClientDto = new UserClientDto();
+//            userClientDto.setUserId(jsonObject.getString("userId"));
+//            userClientDto.setAppId(jsonObject.getInteger("appId"));
+//            userClientDto.setClientType(jsonObject.getInteger("clientType"));
+//            userClientDto.setImei(jsonObject.getString("imei"));
+
+//            MessagePack messagePack = JSONObject.parseObject(s, MessagePack.class);
+//            UserClientDto userClientDto = JSONObject.parseObject(
+//                    (String) messagePack.getData(),
+//                    UserClientDto.class);
+            //UserClientDto userClientDto = JSONObject.parseObject(s, UserClientDto.class);
             log.info("用户{} 上线",userClientDto.getUserId());
 
             // 获取 AppId 和 userId 相等的 channel

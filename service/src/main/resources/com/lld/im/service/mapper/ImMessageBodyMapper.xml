@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lld.im.service.message.dao.mapper.ImMessageBodyMapper">
+
+    <resultMap id="BaseResultMap" type="com.lld.im.service.message.dao.ImMessageBody">
+            <id property="messageKey" column="message_key" />
+            <result property="appId" column="app_id" />
+            <result property="messageBody" column="message_body" />
+            <result property="securityKey" column="security_key" />
+            <result property="messageTime" column="message_time" />
+            <result property="createTime" column="create_time" />
+            <result property="extra" column="extra" />
+            <result property="delFlag" column="del_flag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        message_key,app_id,message_body,security_key,message_time,create_time,
+        extra,del_flag
+    </sql>
+</mapper>

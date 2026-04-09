@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lld.im.service.message.dao.mapper.ImGroupMessageHistoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.lld.im.service.message.dao.ImGroupMessageHistory">
+            <id property="messageKey" column="message_key" />
+            <result property="appId" column="app_id" />
+            <result property="fromId" column="from_id" />
+            <result property="groupId" column="group_id" />
+            <result property="sequence" column="sequence" />
+            <result property="messageRandom" column="message_random" />
+            <result property="messageTime" column="message_time" />
+            <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        message_key,app_id,from_id,group_id,sequence,message_random,
+        message_time,create_time
+    </sql>
+</mapper>

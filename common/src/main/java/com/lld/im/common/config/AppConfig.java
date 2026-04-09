@@ -24,6 +24,15 @@ public class AppConfig {
 
     private String callBackUrl;
 
+    private boolean sendMessageCheckFriend;
+    private boolean sendMessageCheckBlack;
+    private boolean sendMessageAfterCallback;
+    private boolean sendMessageBeforeCallback;
+    private boolean sendGroupMessageAfterCallback;
+    private boolean sendGroupMessageBeforeCallback;
+    private Integer offlineMessageCount;
+    private Integer deleteConversationSyncMode;
+
     private boolean modifyUserAfterCallback; //用户资料变更之后回调开关
 
     private boolean addFriendAfterCallback; //添加好友之后回调开关

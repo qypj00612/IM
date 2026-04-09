@@ -16,11 +16,10 @@ import com.lld.im.common.enums.command.group.GroupEventCommand;
 import com.lld.im.common.exception.ApplicationException;
 import com.lld.im.common.model.ClientInfo;
 import com.lld.im.service.group.dao.ImGroup;
-import com.lld.im.service.group.dao.ImGroupMember;
-import com.lld.im.service.group.enums.GroupErrorCode;
-import com.lld.im.service.group.enums.GroupMemberRoleEnum;
-import com.lld.im.service.group.enums.GroupStatusEnum;
-import com.lld.im.service.group.enums.GroupTypeEnum;
+import com.lld.im.common.enums.group.GroupErrorCode;
+import com.lld.im.common.enums.group.GroupMemberRoleEnum;
+import com.lld.im.common.enums.group.GroupStatusEnum;
+import com.lld.im.common.enums.group.GroupTypeEnum;
 import com.lld.im.service.group.model.callback.DestroyGroupCallBack;
 import com.lld.im.service.group.model.dto.GroupMemberDTO;
 import com.lld.im.service.group.model.req.*;
@@ -37,7 +36,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.awt.*;
 import java.util.List;
 
 /**

@@ -21,6 +21,13 @@ public interface ImGroupMemberService extends IService<ImGroupMember> {
 
     void doAddGroupMember(String groupId, GroupMemberDTO member, Integer appId);
 
+    /**
+     * 获取群成员在群内的状态
+     * @param groupId 群
+     * @param operator 用户
+     * @param appId appId
+     * @return GetRoleResp
+     */
     GetRoleResp getRole(String groupId, String operator, Integer appId);
 
     List<GroupMemberDTO> getGroupMember(String groupId, Integer appId);

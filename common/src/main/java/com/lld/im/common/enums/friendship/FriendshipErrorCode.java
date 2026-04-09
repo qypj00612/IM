@@ -1,8 +1,7 @@
-package com.lld.im.service.friendship.enums;
+package com.lld.im.common.enums.friendship;
 
 
 import com.lld.im.common.enums.ApplicationExceptionEnum;
-import lombok.Data;
 import lombok.Getter;
 
 @Getter

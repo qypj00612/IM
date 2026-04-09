@@ -53,4 +53,8 @@ public class ResponseVO<T> {
         return this.code == 200;
     }
 
+    public static ResponseVO errorResponse() {
+        return ResponseVO.errorResponse(BaseCode.SYSTEM_ERROR);
+    }
+
 }

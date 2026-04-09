@@ -19,10 +19,10 @@ import com.lld.im.service.friendship.dao.ImFriendship;
 import com.lld.im.service.friendship.dao.mapper.ImFriendshipMapper;
 import com.lld.im.service.friendship.dto.FriendshipDTO;
 import com.lld.im.service.friendship.dto.ImportFriendDTO;
-import com.lld.im.service.friendship.enums.AllowFriendTypeEnum;
-import com.lld.im.service.friendship.enums.CheckFriendShipTypeEnum;
-import com.lld.im.service.friendship.enums.FriendshipErrorCode;
-import com.lld.im.service.friendship.enums.FriendshipStatusEnum;
+import com.lld.im.common.enums.friendship.AllowFriendTypeEnum;
+import com.lld.im.common.enums.friendship.CheckFriendShipTypeEnum;
+import com.lld.im.common.enums.friendship.FriendshipErrorCode;
+import com.lld.im.common.enums.friendship.FriendshipStatusEnum;
 import com.lld.im.service.friendship.model.callback.AddBlackCallBackDTO;
 import com.lld.im.service.friendship.model.callback.AddFriendCallBackDTO;
 import com.lld.im.service.friendship.model.callback.DeleteFriendCallBackDTO;
@@ -38,7 +38,6 @@ import com.lld.im.service.utils.CallBackUtil;
 import com.lld.im.service.utils.MessageProducer;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -240,7 +239,7 @@ public class ImFriendshipServiceImpl extends ServiceImpl<ImFriendshipMapper, ImF
     }
 
     @Override
-    public ResponseVO getRelationShip(GetRelationshipReq getRelationshipReq) {
+    public ResponseVO<ImFriendship> getRelationShip(GetRelationshipReq getRelationshipReq) {
         LambdaQueryWrapper<ImFriendship> eq = new LambdaQueryWrapper<ImFriendship>()
                 .eq(ImFriendship::getFromId, getRelationshipReq.getFromId())
                 .eq(ImFriendship::getToId, getRelationshipReq.getToId())

@@ -1,5 +1,6 @@
 package com.lld.im.tcp.publish;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.lld.im.codec.config.BootstrapConfig;
 import com.lld.im.tcp.utils.MqFactory;
@@ -19,9 +20,20 @@ public class MqMessageProducer {
         producer = MqFactory.getProducer(config);
     }
 
-    public void sendMessage(String topic, String tag, Object message){
+    public void sendMessage(String topic, String tag, com.lld.im.codec.proto.Message message){
         //DefaultMQProducer producer = MqFactory.getProducer(config);
-        Message msg = new Message(topic,tag, JSONObject.toJSONString(message).getBytes());
+        JSONObject jsonObject = (JSONObject)JSON.toJSON(message.getMessagePack());
+        if(message.getMessageHeader()!=null) {
+            jsonObject.put("command", message.getMessageHeader().getCommand());
+            jsonObject.put("clientType", message.getMessageHeader().getClientType());
+            jsonObject.put("appId", message.getMessageHeader().getAppId());
+            jsonObject.put("imei", message.getMessageHeader().getImei());
+        }
+        Message msg = new Message(
+                topic,
+                tag,
+                JSONObject.toJSONString(jsonObject).getBytes()
+        );
         try {
             producer.send(msg);
         } catch (Exception e) {

@@ -10,6 +10,7 @@ import com.lld.im.codec.proto.MessageHeader;
 import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.ImConnectStatusEnums;
 import com.lld.im.common.enums.command.SystemCommand;
+import com.lld.im.common.enums.command.group.GroupEventCommand;
 import com.lld.im.common.model.UserClientDto;
 import com.lld.im.common.model.UserSession;
 import com.lld.im.tcp.Redis.RedisManager;
@@ -41,6 +42,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) throws Exception {
         MessageHeader messageHeader = msg.getMessageHeader();
         Integer command = messageHeader.getCommand();
+        log.info("接收到消息，指令为:{}", command);
 
         if(command == SystemCommand.LOGIN.getCommand()){
             LoginPack loginPack = JSON.parseObject(JSON.toJSONString(msg.getMessagePack())
@@ -87,10 +89,12 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             userClientDto.setAppId(userSession.getAppId());
             userClientDto.setClientType(userSession.getClientType());
             userClientDto.setImei(userSession.getImei());
+            Message message = new Message();
+            message.setMessagePack(userClientDto);
             mqMessageProducer.sendMessage(
                     Constants.RocketConstants.IM_BROADCAST,
                     Constants.RocketConstants.USER_LOGIN,
-                    userClientDto
+                    message
             );
 
             log.info("用户登录: {}", userSession);
@@ -101,6 +105,18 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         } else if (command == SystemCommand.PING.getCommand()) {
             long time = DateTime.now().getTime();
             ctx.channel().attr(AttributeKey.valueOf(Constants.ReadTime)).set(time);
+        } else if (command == GroupEventCommand.MSG_GROUP.getCommand()) {
+            mqMessageProducer.sendMessage(
+                    Constants.RocketConstants.IM_TO_SERVICE,
+                    Constants.RocketConstants.Im2GroupService,
+                    msg
+            );
+        } else{
+            mqMessageProducer.sendMessage(
+                    Constants.RocketConstants.IM_TO_SERVICE,
+                    Constants.RocketConstants.Im2MessageService,
+                    msg
+            );
         }
     }
 }

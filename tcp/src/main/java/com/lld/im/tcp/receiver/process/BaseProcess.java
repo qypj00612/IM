@@ -12,10 +12,12 @@ public abstract class BaseProcess {
 
     public void process(MessagePack pack){
         processBefore();
-        NioSocketChannel nioSocketChannel = SessionSocketHandler.get(pack.getAppId(),
+        NioSocketChannel nioSocketChannel = SessionSocketHandler.get(
+                pack.getAppId(),
                 pack.getUserId(),
                 pack.getClientType(),
-                pack.getImei());
+                pack.getImei()
+        );
         if(nioSocketChannel!=null){
             nioSocketChannel.writeAndFlush(pack);
         }
