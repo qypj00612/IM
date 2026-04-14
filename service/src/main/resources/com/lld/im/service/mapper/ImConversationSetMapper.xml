@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lld.im.service.conversation.dao.mapper.ImConversationSetMapper">
+
+    <resultMap id="BaseResultMap" type="com.lld.im.service.conversation.dao.ImConversationSet">
+            <id property="conversationId" column="conversation_id" />
+            <result property="conversationType" column="conversation_type" />
+            <result property="fromId" column="from_id" />
+            <result property="toId" column="to_id" />
+            <result property="isMute" column="is_mute" />
+            <result property="isTop" column="is_top" />
+            <result property="sequence" column="sequence" />
+            <result property="readSequence" column="read_sequence" />
+            <result property="appId" column="app_id" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        conversation_id,conversation_type,from_id,to_id,is_mute,is_top,
+        sequence,read_sequence,app_id
+    </sql>
+    <update id="readMark">
+        update im_conversation_set
+        set read_sequence = #{messageSequence}
+        where conversation_id = #{id}
+            and app_id = #{appId}
+            and read_sequence &lt; #{messageSequence}
+    </update>
+</mapper>

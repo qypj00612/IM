@@ -16,6 +16,7 @@ public class BootstrapConfig {
 
         private Integer brokerId;
         private Integer loginModel;
+        private String loginUrl;
         /**
          * redis配置
          */

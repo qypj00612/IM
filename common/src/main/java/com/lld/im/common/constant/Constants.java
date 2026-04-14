@@ -1,7 +1,5 @@
 package com.lld.im.common.constant;
 
-import com.lld.im.common.model.UserSession;
-
 public class Constants {
 
     public static String UserId = "userId";
@@ -17,6 +15,10 @@ public class Constants {
          *  用户session：appId + UserSessionConstant + userId
          */
         public static final String UserSessionConstant=":userSession:";
+
+        public static final String MessageConstant =":message:";
+
+        public static final String OfflineConstant=":offlineMessage:";
 
     }
 
@@ -91,6 +93,12 @@ public class Constants {
 
         public static final String SendMessageBefore = "message.send.before";
 
+    }
+
+    public static class SeqConstants{
+        public static final String P2PRedisSeq = ":p2p-redis-seq:";
+
+        public static final String GroupRedisSeq = ":group-redis-seq:";
     }
 
 }

@@ -13,7 +13,8 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+
 
 @Slf4j
 public class MqMessageReceiver {
@@ -24,6 +25,8 @@ public class MqMessageReceiver {
         try {
             consumer = MqFactory.createConsumer(config, Constants.RocketConstants.SERVICE_TO_IM);
             broadConsumer = MqFactory.createConsumer(config, Constants.RocketConstants.IM_BROADCAST);
+
+            // 设置消费者的消息模式为：广播模式
             broadConsumer.setMessageModel(MessageModel.BROADCASTING);
         } catch (Exception e) {
             log.error("创建消费者失败");
