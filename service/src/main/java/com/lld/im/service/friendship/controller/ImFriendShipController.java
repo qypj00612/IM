@@ -1,6 +1,9 @@
 package com.lld.im.service.friendship.controller;
 
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.model.req.SyncReq;
+import com.lld.im.common.model.resp.SyncResp;
+import com.lld.im.service.friendship.dao.ImFriendship;
 import com.lld.im.service.friendship.model.req.*;
 import com.lld.im.service.friendship.model.resp.CheckFriendShipResp;
 import com.lld.im.service.friendship.model.resp.ImportFriendshipResp;
@@ -77,6 +80,12 @@ public class ImFriendShipController {
     @RequestMapping("checkBlack")
     public ResponseVO<List<CheckFriendShipResp>> checkBlack(@RequestBody @Valid CheckFriendShipReq checkFriendShipReq) {
         List<CheckFriendShipResp> resp = imFriendshipService.checkBlack(checkFriendShipReq);
+        return ResponseVO.successResponse(resp);
+    }
+
+    @RequestMapping("sync")
+    public ResponseVO syncGetFriendship(@RequestBody @Valid SyncReq req){
+        SyncResp<ImFriendship> resp = imFriendshipService.syncGetFriendship(req);
         return ResponseVO.successResponse(resp);
     }
 

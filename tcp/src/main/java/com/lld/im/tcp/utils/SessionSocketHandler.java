@@ -2,11 +2,16 @@ package com.lld.im.tcp.utils;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
+import com.lld.im.codec.pack.user.UserStatusChangeNotifyPack;
+import com.lld.im.codec.proto.MessageHeader;
 import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.ImConnectStatusEnums;
+import com.lld.im.common.enums.command.SystemCommand;
+import com.lld.im.common.enums.command.user.UserEventCommand;
 import com.lld.im.common.model.UserClientDto;
 import com.lld.im.common.model.UserSession;
 import com.lld.im.tcp.Redis.RedisManager;
+import com.lld.im.tcp.publish.MqMessageProducer;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +63,7 @@ public class SessionSocketHandler {
         socketMap.entrySet().removeIf(entry -> entry.getValue() == socketChannel);
     }
 
-    public static void loginOut(NioSocketChannel socketChannel) {
+    public static void loginOut(NioSocketChannel socketChannel, MqMessageProducer producer) {
         String userId = (String) socketChannel.attr(AttributeKey.valueOf(Constants.UserId)).get();
         Integer appId = (Integer) socketChannel.attr(AttributeKey.valueOf(Constants.AppId)).get();
         Integer clientType = (Integer) socketChannel.attr(AttributeKey.valueOf(Constants.ClientType)).get();
@@ -70,10 +75,29 @@ public class SessionSocketHandler {
         RMap<String, String> map = redissonClient.getMap(appId
                 + Constants.RedisConstants.UserSessionConstant + userId);
         map.remove(clientType+":"+imei);
+
+        // 通知逻辑层用户登出
+        MessageHeader messageHeader = new MessageHeader();
+        messageHeader.setClientType(clientType);
+        messageHeader.setAppId(appId);
+        messageHeader.setImei(imei);
+        messageHeader.setCommand(UserEventCommand.USER_ONLINE_STATUS_CHANGE.getCommand());
+
+        UserStatusChangeNotifyPack pack = new UserStatusChangeNotifyPack();
+        pack.setAppId(appId);
+        pack.setUserId(userId);
+        pack.setStatus(ImConnectStatusEnums.OFF_LINE.getCode());
+        producer.sendMessage(
+                Constants.RocketConstants.IM_TO_SERVICE,
+                Constants.RocketConstants.Im2UserService,
+                messageHeader,
+                pack
+        );
+
         socketChannel.close();
     }
 
-    public static void offLineUserSession(NioSocketChannel channel) {
+    public static void offLineUserSession(NioSocketChannel channel, MqMessageProducer producer) {
         String userId = (String) channel.attr(AttributeKey.valueOf(Constants.UserId)).get();
         Integer appId = (Integer) channel.attr(AttributeKey.valueOf(Constants.AppId)).get();
         Integer clientType = (Integer) channel.attr(AttributeKey.valueOf(Constants.ClientType)).get();
@@ -90,6 +114,25 @@ public class SessionSocketHandler {
             userSession.setConnectState(ImConnectStatusEnums.OFF_LINE.getCode());
             map.put(clientType+":"+imei, JSONObject.toJSONString(userSession));
         }
+
+        // 通知逻辑层用户下线
+        MessageHeader messageHeader = new MessageHeader();
+        messageHeader.setClientType(clientType);
+        messageHeader.setAppId(appId);
+        messageHeader.setImei(imei);
+        messageHeader.setCommand(UserEventCommand.USER_ONLINE_STATUS_CHANGE.getCommand());
+
+        UserStatusChangeNotifyPack pack = new UserStatusChangeNotifyPack();
+        pack.setAppId(appId);
+        pack.setUserId(userId);
+        pack.setStatus(ImConnectStatusEnums.OFF_LINE.getCode());
+        producer.sendMessage(
+                Constants.RocketConstants.IM_TO_SERVICE,
+                Constants.RocketConstants.Im2UserService,
+                messageHeader,
+                pack
+        );
+
         channel.close();
     }
 

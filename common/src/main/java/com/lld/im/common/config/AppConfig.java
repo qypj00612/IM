@@ -26,10 +26,10 @@ public class AppConfig {
 
     private boolean sendMessageCheckFriend;
     private boolean sendMessageCheckBlack;
-    private boolean sendMessageAfterCallback;
-    private boolean sendMessageBeforeCallback;
-    private boolean sendGroupMessageAfterCallback;
-    private boolean sendGroupMessageBeforeCallback;
+    private boolean sendMessageAfterCallback; // 发送单聊消息之前回调
+    private boolean sendMessageBeforeCallback; // 发送单聊消息之后回调
+    private boolean sendGroupMessageAfterCallback; // 发送群聊消息之前回调
+    private boolean sendGroupMessageBeforeCallback; // 发送群聊消息之后回调
     private Integer offlineMessageCount;
     private Integer deleteConversationSyncMode;
 

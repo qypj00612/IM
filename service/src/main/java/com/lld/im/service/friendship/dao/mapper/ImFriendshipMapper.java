@@ -23,6 +23,10 @@ public interface ImFriendshipMapper extends BaseMapper<ImFriendship> {
     List<CheckFriendShipResp> singleBlack(CheckFriendShipReq req);
 
     List<CheckFriendShipResp> bothBlack(CheckFriendShipReq req);
+
+    long getMaxSequence(Integer appId, String operator);
+
+    List<String> getAllFriendIds(String userId, Integer appId);
 }
 
 

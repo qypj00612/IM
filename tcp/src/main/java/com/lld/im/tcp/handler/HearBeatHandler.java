@@ -2,6 +2,7 @@ package com.lld.im.tcp.handler;
 
 import cn.hutool.core.date.DateTime;
 import com.lld.im.common.constant.Constants;
+import com.lld.im.tcp.publish.MqMessageProducer;
 import com.lld.im.tcp.utils.SessionSocketHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -16,8 +17,11 @@ public class HearBeatHandler extends ChannelInboundHandlerAdapter {
 
     private final Long headBeatTime;
 
-    public HearBeatHandler(Long headBeatTime) {
+    private final MqMessageProducer producer;
+
+    public HearBeatHandler(Long headBeatTime, MqMessageProducer producer) {
         this.headBeatTime = headBeatTime;
+        this.producer = producer;
     }
 
     @Override
@@ -31,7 +35,7 @@ public class HearBeatHandler extends ChannelInboundHandlerAdapter {
                 long now = DateTime.now().getTime();
                 Long time = (Long) ctx.channel().attr(AttributeKey.valueOf(Constants.ReadTime)).get();
                 if(time != null&&now-time>headBeatTime){
-                    SessionSocketHandler.offLineUserSession((NioSocketChannel) ctx.channel());
+                    SessionSocketHandler.offLineUserSession((NioSocketChannel) ctx.channel(),producer);
                 }
             }
         }

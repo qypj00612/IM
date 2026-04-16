@@ -20,7 +20,9 @@ import com.lld.im.service.friendship.model.req.ApproveFriendRequestReq;
 import com.lld.im.service.friendship.model.req.GetFriendshipRequestReq;
 import com.lld.im.service.friendship.model.req.ReadFriendshipRequestReq;
 import com.lld.im.service.friendship.service.ImFriendshipRequestService;
+import com.lld.im.service.message.seq.RedisSeq;
 import com.lld.im.service.utils.MessageProducer;
+import com.lld.im.service.utils.WriteUserSeq;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +47,10 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
 
     private final MessageProducer messageProducer;
 
+    private final RedisSeq redisSeq;
+
+    private final WriteUserSeq writeUserSeq;
+
     @Lazy
     @Resource
     private ImFriendshipServiceImpl imFriendshipService;
@@ -58,6 +64,7 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
                 .eq(ImFriendshipRequest::getToId, toItem.getToId());
 
         ImFriendshipRequest imFriendshipRequest = imFriendshipRequestMapper.selectOne(eq);
+        long seq=redisSeq.seqIncrement(appId+":"+Constants.SeqConstants.FriendShipRequestSeq);
         if (imFriendshipRequest == null) {
             ImFriendshipRequest request = BeanUtil.copyProperties(toItem, ImFriendshipRequest.class);
             request.setAppId(appId);
@@ -66,6 +73,7 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
             request.setUpdateTime(DateTime.now().getTime());
             request.setReadStatus(0);
             request.setApproveStatus(0);
+            request.setSequence(seq);
             imFriendshipRequestMapper.insert(request);
             imFriendshipRequest=request;
         }else{
@@ -80,8 +88,11 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
                 request.setRemark(toItem.getRemark());
             }
             request.setUpdateTime(DateTime.now().getTime());
+            request.setSequence(seq);
             imFriendshipRequestMapper.update(request, eq);
         }
+
+        writeUserSeq.writeUserSeq(appId,toItem.getToId(),Constants.SeqConstants.FriendShipRequestSeq,seq);
 
         // 通知tcp
         messageProducer.sendToUser(imFriendshipRequest.getToId(),
@@ -105,10 +116,12 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
             throw new ApplicationException(FriendshipErrorCode.NOT_APPROVER_OTHER_MAN_REQUEST);
         }
 
+        long seq = redisSeq.seqIncrement(req.getAppId()+":"+Constants.SeqConstants.FriendShipRequestSeq);
         ImFriendshipRequest update = new ImFriendshipRequest();
         update.setApproveStatus(request.getApproveStatus());
         update.setUpdateTime(DateTime.now().getTime());
         update.setId(req.getId());
+        update.setSequence(seq);
         imFriendshipRequestMapper.updateById(update);
 
         if(req.getStatus()== ApproveFriendRequestStatusEnum.AGREE.getCode()){
@@ -122,8 +135,11 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
 
         }
 
+        writeUserSeq.writeUserSeq(req.getAppId(),req.getOperator(),Constants.SeqConstants.FriendShipRequestSeq,seq);
+
         // 通知tcp，实现多端同步
         ApproverFriendRequestPack pack = BeanUtil.copyProperties(req, ApproverFriendRequestPack.class);
+        pack.setSequence(seq);
         messageProducer.sendToUser(request.getToId(),
                 req.getClientType(),
                 req.getImei(),

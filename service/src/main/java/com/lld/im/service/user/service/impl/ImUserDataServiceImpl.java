@@ -11,6 +11,9 @@ import com.lld.im.common.ResponseVO;
 import com.lld.im.common.config.AppConfig;
 import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.command.user.UserEventCommand;
+import com.lld.im.common.exception.ApplicationException;
+import com.lld.im.common.model.req.SyncReq;
+import com.lld.im.service.group.service.ImGroupService;
 import com.lld.im.service.user.dao.ImUserData;
 import com.lld.im.service.user.dao.mapper.ImUserDataMapper;
 import com.lld.im.common.enums.user.UserErrorCode;
@@ -23,6 +26,8 @@ import com.lld.im.service.utils.CallBackUtil;
 import com.lld.im.service.utils.MessageProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -49,14 +54,26 @@ public class ImUserDataServiceImpl extends ServiceImpl<ImUserDataMapper, ImUserD
 
     private final MessageProducer messageProducer;
 
+    private final RedisTemplate redisTemplate;
+
+    private final ImGroupService imGroupService;
+
+    @Override
+    public ResponseVO getUserSeq(GetUserSeqReq req) {
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(req.getAppId() + Constants.RedisConstants.UserSeq + req.getUserId());
+        long max = imGroupService.getUserGroupMaxSeq(req.getAppId(),req.getUserId());
+        entries.put(Constants.SeqConstants.GroupSeq , max);
+        return ResponseVO.successResponse(entries);
+    }
+
     @Override
     public ImportUserResp importUser(ImportUserReq userData) {
 
         List<ImUserData> userDataList = userData.getUserData();
 
         if(userDataList.size() > 100){
-            // TODO 插入人数过多
-
+            // 插入人数过多
+            throw new ApplicationException(UserErrorCode.IMPORT_SIZE_BEYOND);
         }
 
         List<String> success = new ArrayList<>();

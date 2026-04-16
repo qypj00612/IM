@@ -2,6 +2,8 @@ package com.lld.im.service.conversation.service;
 
 import com.lld.im.common.ResponseVO;
 import com.lld.im.common.model.message.MessageReadedContent;
+import com.lld.im.common.model.req.SyncReq;
+import com.lld.im.common.model.resp.SyncResp;
 import com.lld.im.service.conversation.dao.ImConversationSet;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lld.im.service.conversation.model.DeleteConversationReq;
@@ -29,4 +31,6 @@ public interface ImConversationSetService extends IService<ImConversationSet> {
      * @return
      */
     ResponseVO update(UpdateConversationReq req);
+
+    SyncResp<ImConversationSet> syncConversation(SyncReq req);
 }

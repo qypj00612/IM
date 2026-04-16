@@ -133,4 +133,19 @@
         on b.fromId=a.toId and a.fromId=b.toId
     </select>
 
+    <select id="getMaxSequence" resultType="java.lang.Long">
+        select max(friend_sequence)
+        from im_friendship
+        where app_id = #{appId}
+        and from_id = #{operator}
+    </select>
+
+    <select id="getAllFriendIds" resultType="java.lang.String">
+        select to_id
+        from im_friendship
+        where from_id = #{userId}
+        and app_id = #{appId}
+        and status = 1
+    </select>
+
 </mapper>

@@ -22,5 +22,13 @@
             <result property="updateTime" column="update_time" />
             <result property="extra" column="extra" />
     </resultMap>
+    <select id="getMaxSeq" resultType="java.lang.Long">
+            select max(sequence)
+            from im_group
+            where group_id in
+            <foreach collection="joined" item="id" close=")" separator="," open="(" index="index">
+                    #{id}
+            </foreach>
+    </select>
 
 </mapper>

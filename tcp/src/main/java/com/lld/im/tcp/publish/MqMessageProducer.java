@@ -3,6 +3,8 @@ package com.lld.im.tcp.publish;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.lld.im.codec.config.BootstrapConfig;
+import com.lld.im.codec.pack.user.UserStatusChangeNotifyPack;
+import com.lld.im.codec.proto.MessageHeader;
 import com.lld.im.tcp.utils.MqFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -29,6 +31,25 @@ public class MqMessageProducer {
             jsonObject.put("appId", message.getMessageHeader().getAppId());
             jsonObject.put("imei", message.getMessageHeader().getImei());
         }
+        Message msg = new Message(
+                topic,
+                tag,
+                JSONObject.toJSONString(jsonObject).getBytes()
+        );
+        try {
+            producer.send(msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("消息发送失败");
+        }
+    }
+
+    public void sendMessage(String topic, String tag, MessageHeader messageHeader, UserStatusChangeNotifyPack pack) {
+        JSONObject jsonObject = (JSONObject)JSON.toJSON(pack);
+        jsonObject.put("command", messageHeader.getCommand());
+        jsonObject.put("clientType", messageHeader.getClientType());
+        jsonObject.put("appId", messageHeader.getAppId());
+        jsonObject.put("imei", messageHeader.getImei());
         Message msg = new Message(
                 topic,
                 tag,

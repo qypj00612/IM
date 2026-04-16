@@ -8,4 +8,6 @@ public class DeleteConversationPack {
 
     private String conversationId;
 
+    private Long sequence;
+
 }

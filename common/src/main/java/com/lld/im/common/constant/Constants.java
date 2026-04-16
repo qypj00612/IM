@@ -16,10 +16,30 @@ public class Constants {
          */
         public static final String UserSessionConstant=":userSession:";
 
+        /**
+         * 缓存客户端消息防重，格式： appId + :cacheMessage: + messageId
+         */
         public static final String MessageConstant =":message:";
 
+        /**
+         * 离线消息缓存
+         */
         public static final String OfflineConstant=":offlineMessage:";
 
+        /**
+         * 用户seq
+         */
+        public static final String UserSeq=":userSeq:";
+
+        /**
+         * 被订阅用户缓存
+         */
+        public static final String BeSubscribeUser = ":beSubscribeUser:";
+
+        /**
+         * 用户客户端状态缓存
+         */
+        public static final String ClientStatus = ":clientStatus:";
     }
 
     public static class NacosConstants{
@@ -99,6 +119,11 @@ public class Constants {
         public static final String P2PRedisSeq = ":p2p-redis-seq:";
 
         public static final String GroupRedisSeq = ":group-redis-seq:";
+
+        public static final String FriendShipSeq = "friendShipSeq";
+        public static final String FriendShipRequestSeq = "friendShipRequestSeq";
+        public static final String ConversationSeq = "conversationSeq";
+        public static final String GroupSeq = "groupSeq";
     }
 
 }

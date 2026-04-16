@@ -13,6 +13,7 @@ import java.util.List;
 */
 public interface ImGroupMapper extends BaseMapper<ImGroup> {
 
+    long getMaxSeq(List<String> joined);
 }
 
 

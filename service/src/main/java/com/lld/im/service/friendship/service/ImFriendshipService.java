@@ -3,6 +3,8 @@ package com.lld.im.service.friendship.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.model.req.SyncReq;
+import com.lld.im.common.model.resp.SyncResp;
 import com.lld.im.service.friendship.dao.ImFriendship;
 import com.lld.im.service.friendship.model.req.*;
 import com.lld.im.service.friendship.model.resp.CheckFriendShipResp;
@@ -38,4 +40,8 @@ public interface ImFriendshipService extends IService<ImFriendship> {
     ResponseVO deleteBlack(DeleteBlackReq deleteBlackReq);
 
     List<CheckFriendShipResp> checkBlack(CheckFriendShipReq checkFriendShipReq);
+
+    SyncResp<ImFriendship> syncGetFriendship(SyncReq req);
+
+    List<String> getAllFriendIds(String userId, Integer appId);
 }

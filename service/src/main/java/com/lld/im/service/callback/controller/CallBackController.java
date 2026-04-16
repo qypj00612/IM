@@ -1,4 +1,4 @@
-package com.lld.im.service.controller;
+package com.lld.im.service.callback.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;

@@ -4,9 +4,11 @@ import cn.hutool.core.date.DateTime;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
+import com.lld.im.codec.pack.LoginAckPack;
 import com.lld.im.codec.pack.LoginPack;
 import com.lld.im.codec.pack.MessagePack;
 import com.lld.im.codec.pack.message.ChatMessageAck;
+import com.lld.im.codec.pack.user.UserStatusChangeNotifyPack;
 import com.lld.im.codec.proto.Message;
 import com.lld.im.codec.proto.MessageHeader;
 import com.lld.im.common.ResponseVO;
@@ -15,6 +17,7 @@ import com.lld.im.common.enums.ImConnectStatusEnums;
 import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.enums.command.SystemCommand;
 import com.lld.im.common.enums.command.group.GroupEventCommand;
+import com.lld.im.common.enums.command.user.UserEventCommand;
 import com.lld.im.common.model.UserClientDto;
 import com.lld.im.common.model.UserSession;
 import com.lld.im.common.model.message.req.CheckSendMessageReq;
@@ -115,11 +118,41 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
                     message
             );
 
+            // 通知 逻辑服务层 用户登录
+            UserStatusChangeNotifyPack pack = new UserStatusChangeNotifyPack();
+            pack.setAppId(userSession.getAppId());
+            pack.setUserId(userSession.getUserId());
+            pack.setStatus(ImConnectStatusEnums.ON_LINE.getCode());
+
+            messageHeader.setCommand(UserEventCommand.USER_ONLINE_STATUS_CHANGE.getCommand());
+
+            mqMessageProducer.sendMessage(
+                    Constants.RocketConstants.IM_TO_SERVICE,
+                    Constants.RocketConstants.Im2UserService,
+                    messageHeader,
+                    pack
+            );
+
+            // 回 ack 给客户端表示登陆成功
+            LoginAckPack loginAckPack = new LoginAckPack();
+            loginAckPack.setUserId(userSession.getUserId());
+
+            MessagePack<LoginAckPack> ack = new MessagePack<>();
+            ack.setUserId(userSession.getUserId());
+            ack.setAppId(userSession.getAppId());
+            ack.setToId(userSession.getUserId());
+            ack.setClientType(userSession.getClientType());
+            ack.setImei(userSession.getImei());
+            ack.setCommand(SystemCommand.LOGIN_ACK.getCommand());
+            ack.setData(loginAckPack);
+
+            ctx.channel().writeAndFlush(ack);
+
             log.info("用户登录: {}", userSession);
 
         } else if (command == SystemCommand.LOGOUT.getCommand()) {
             // 将 channel 和会话信息从 session 管理和 redis 中移除
-            SessionSocketHandler.loginOut((NioSocketChannel) ctx.channel());
+            SessionSocketHandler.loginOut((NioSocketChannel) ctx.channel(), mqMessageProducer);
         } else if (command == SystemCommand.PING.getCommand()) {
             long time = DateTime.now().getTime();
             ctx.channel().attr(AttributeKey.valueOf(Constants.ReadTime)).set(time);
@@ -204,7 +237,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         log.info("用户{}下线", ctx.channel().attr(AttributeKey.valueOf(Constants.UserId)).get());
-        SessionSocketHandler.offLineUserSession((NioSocketChannel) ctx.channel());
+        SessionSocketHandler.offLineUserSession((NioSocketChannel) ctx.channel(), mqMessageProducer);
         ctx.close();
     }
 }

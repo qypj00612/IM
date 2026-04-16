@@ -22,9 +22,15 @@
     </sql>
     <update id="readMark">
         update im_conversation_set
-        set read_sequence = #{messageSequence}
+        set read_sequence = #{messageSequence}, sequence = #{seq}
         where conversation_id = #{id}
             and app_id = #{appId}
             and read_sequence &lt; #{messageSequence}
     </update>
+    <select id="getMaxSequence" resultType="java.lang.Long">
+        select max(sequence)
+        from im_conversation_set
+        where from_id = #{operator}
+        and app_id = #{appId}
+    </select>
 </mapper>

@@ -11,7 +11,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface ImConversationSetMapper extends BaseMapper<ImConversationSet> {
 
-    void readMark(String id, Integer appId, Long messageSequence);
+    void readMark(String id, Integer appId, Long messageSequence, Long seq);
+
+    long getMaxSequence(Integer appId, String operator);
 }
 
 

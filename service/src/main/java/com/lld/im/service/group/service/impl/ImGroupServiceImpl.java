@@ -7,6 +7,7 @@ import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lld.im.codec.pack.group.*;
 import com.lld.im.common.ResponseVO;
@@ -15,11 +16,14 @@ import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.command.group.GroupEventCommand;
 import com.lld.im.common.exception.ApplicationException;
 import com.lld.im.common.model.ClientInfo;
+import com.lld.im.common.model.req.SyncReq;
+import com.lld.im.common.model.resp.SyncResp;
 import com.lld.im.service.group.dao.ImGroup;
 import com.lld.im.common.enums.group.GroupErrorCode;
 import com.lld.im.common.enums.group.GroupMemberRoleEnum;
 import com.lld.im.common.enums.group.GroupStatusEnum;
 import com.lld.im.common.enums.group.GroupTypeEnum;
+import com.lld.im.service.group.dao.mapper.ImGroupMemberMapper;
 import com.lld.im.service.group.model.callback.DestroyGroupCallBack;
 import com.lld.im.service.group.model.dto.GroupMemberDTO;
 import com.lld.im.service.group.model.req.*;
@@ -28,6 +32,7 @@ import com.lld.im.service.group.model.resp.GetRoleResp;
 import com.lld.im.service.group.service.ImGroupMemberService;
 import com.lld.im.service.group.service.ImGroupService;
 import com.lld.im.service.group.dao.mapper.ImGroupMapper;
+import com.lld.im.service.message.seq.RedisSeq;
 import com.lld.im.service.utils.CallBackUtil;
 import com.lld.im.service.utils.GroupMessageProducer;
 import jakarta.annotation.Resource;
@@ -49,11 +54,16 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
     implements ImGroupService{
 
     private final AppConfig appConfig;
+
     private final CallBackUtil callBackUtil;
 
     private final ImGroupMapper imGroupMapper;
 
     private final GroupMessageProducer groupMessageProducer;
+
+    private final RedisSeq redisSeq;
+
+    private final ImGroupMemberMapper imGroupMemberMapper;
 
     @Resource
     @Lazy
@@ -64,6 +74,9 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
 
         ImGroup imGroup = BeanUtil.copyProperties(req, ImGroup.class);
 
+        long seq = redisSeq.seqIncrement(req.getAppId()+":"+Constants.SeqConstants.GroupRedisSeq);
+
+        imGroup.setSequence(seq);
         if(imGroup.getGroupId()!=null){
             ImGroup group = getImGroup(req.getGroupId(), req.getAppId());
 
@@ -121,10 +134,13 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
             }
         }
 
+        long seq = redisSeq.seqIncrement(req.getAppId()+":"+Constants.SeqConstants.GroupRedisSeq);
+
         ImGroup imGroup = BeanUtil.copyProperties(req, ImGroup.class);
         imGroup.setCreateTime(DateTime.now().getTime());
         imGroup.setUpdateTime(DateTime.now().getTime());
         imGroup.setStatus(GroupStatusEnum.NORMAL.getCode());
+        imGroup.setSequence(seq);
         try {
             imGroupMapper.insert(imGroup);
         } catch (Exception e) {
@@ -181,8 +197,11 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
             }
         }
 
+        long seq = redisSeq.seqIncrement(req.getAppId()+":"+Constants.SeqConstants.GroupRedisSeq);
+
         ImGroup update = BeanUtil.copyProperties(req, ImGroup.class);
         update.setUpdateTime(DateTime.now().getTime());
+        update.setSequence(seq);
         if(StrUtil.isNotBlank(req.getGroupIntroduction())){
             update.setIntroduction(req.getGroupIntroduction());
         }
@@ -275,6 +294,45 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
     }
 
     @Override
+    public SyncResp<ImGroup> syncGroup(SyncReq req) {
+        if(req.getMaxLimit()>100){
+            req.setMaxLimit(100);
+        }
+        SyncResp<ImGroup> resp = new SyncResp<>();
+        List<String> joined = imGroupMemberService.getJoined(req.getOperator(), req.getAppId());
+        if(CollUtil.isNotEmpty(joined)){
+            Page<ImGroup> page = new Page<>(1, req.getMaxLimit());
+            LambdaQueryWrapper<ImGroup> gt = new LambdaQueryWrapper<ImGroup>()
+                    .eq(ImGroup::getAppId, req.getAppId())
+                    .in(ImGroup::getGroupId, joined)
+                    .gt(ImGroup::getSequence, req.getLastSeq());
+            imGroupMapper.selectPage(page, gt);
+            List<ImGroup> records = page.getRecords();
+            if(CollUtil.isNotEmpty(records)){
+                ImGroup max = records.get(records.size() - 1);
+                resp.setMaxSeq(max.getSequence());
+                resp.setDataList(records);
+                long maxSeq = imGroupMapper.getMaxSeq(joined);
+                resp.setCompleted(max.getSequence()>=maxSeq);
+            }else{
+                resp.setCompleted(true);
+            }
+        }else{
+            resp.setCompleted(true);
+        }
+        return resp;
+    }
+
+    @Override
+    public long getUserGroupMaxSeq(Integer appId, String userId) {
+        List<String> joined = imGroupMemberService.getJoined(userId, appId);
+        if(CollUtil.isNotEmpty(joined)){
+            return imGroupMapper.getMaxSeq(joined);
+        }
+        return 0;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public ResponseVO destroy(DestroyGroupReq req) {
         boolean isAdmin = false;
@@ -295,6 +353,9 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
             throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_OWNER_ROLE);
         }
 
+        long seq = redisSeq.seqIncrement(req.getAppId()+":"+Constants.SeqConstants.GroupRedisSeq);
+
+        group.setSequence(seq);
         group.setUpdateTime(DateTime.now().getTime());
         group.setStatus(GroupStatusEnum.DESTROY.getCode());
         try {
@@ -354,7 +415,3 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
         return ResponseVO.successResponse();
     }
 }
-
-
-
-

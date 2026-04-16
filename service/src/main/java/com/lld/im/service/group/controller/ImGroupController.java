@@ -1,10 +1,13 @@
 package com.lld.im.service.group.controller;
 
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.model.req.SyncReq;
+import com.lld.im.common.model.resp.SyncResp;
 import com.lld.im.service.group.dao.ImGroup;
 import com.lld.im.service.group.model.req.*;
 import com.lld.im.service.group.model.resp.GetGroupResp;
 import com.lld.im.service.group.service.ImGroupService;
+import jakarta.servlet.ServletConfig;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -62,4 +65,11 @@ public class ImGroupController {
     public ResponseVO mute(@RequestBody @Valid MuteGroupReq req){
         return imGroupService.mute(req);
     }
+
+    @RequestMapping("sync")
+    public ResponseVO syncGroup(@RequestBody @Valid SyncReq req){
+        SyncResp<ImGroup> resp = imGroupService.syncGroup(req);
+        return ResponseVO.successResponse(resp);
+    }
+
 }

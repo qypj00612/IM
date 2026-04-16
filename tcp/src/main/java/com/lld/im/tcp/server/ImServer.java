@@ -45,7 +45,7 @@ public class ImServer {
                 ch.pipeline().addLast(new MessageDecode());
                 ch.pipeline().addLast(new MessageEncode());
                 //ch.pipeline().addLast(new IdleStateHandler(0,0,1));
-                ch.pipeline().addLast(new HearBeatHandler(config.getHearBeatTime()));
+                ch.pipeline().addLast(new HearBeatHandler(config.getHearBeatTime(),producer));
                 ch.pipeline().addLast(new NettyServerHandler(config.getBrokerId(),producer, config.getLoginUrl()));
             }
         });

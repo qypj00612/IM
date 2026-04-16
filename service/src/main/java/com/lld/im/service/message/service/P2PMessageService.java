@@ -1,9 +1,11 @@
 package com.lld.im.service.message.service;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.lld.im.codec.pack.message.ChatMessageAck;
 import com.lld.im.codec.proto.MessageReceiveServerAckPack;
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.config.AppConfig;
 import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.enums.conversation.ConversationTypeEnum;
@@ -13,10 +15,10 @@ import com.lld.im.common.model.message.OfflineMessageContent;
 import com.lld.im.service.message.modul.req.SendMessageReq;
 import com.lld.im.service.message.modul.resp.SendMessageResp;
 import com.lld.im.service.message.seq.RedisSeq;
+import com.lld.im.service.utils.CallBackUtil;
 import com.lld.im.service.utils.ConversationIdGenerate;
 import com.lld.im.service.utils.MessageProducer;
 import lombok.RequiredArgsConstructor;
-import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -39,6 +41,10 @@ public class P2PMessageService {
     private final RedisSeq redisSeq;
 
     private ThreadPoolExecutor threadPoolExecutor;
+
+    private final AppConfig appConfig;
+
+    private final CallBackUtil callBackUtil;
 
     {
         AtomicLong num = new AtomicLong(0);
@@ -82,6 +88,19 @@ public class P2PMessageService {
             return;
         }
 
+        // 发消息之前会回调
+        if(appConfig.isSendMessageBeforeCallback()){
+            ResponseVO responseVO = callBackUtil.beforeCallBack(
+                    messageContent.getAppId(),
+                    Constants.CallBackCommand.SendMessageBefore,
+                    JSONObject.toJSONString(messageContent)
+            );
+            if(!responseVO.isOk()){
+                ack(messageContent,responseVO);
+                return;
+            }
+        }
+
         String key = messageContent.getAppId()+
                 Constants.SeqConstants.P2PRedisSeq+
                 ConversationIdGenerate.generateP2PId(messageContent.getFromId(),messageContent.getToId());
@@ -106,6 +125,16 @@ public class P2PMessageService {
             if(clientInfos != null && clientInfos.isEmpty()) {
                 receiveAck(messageContent);
             }
+
+            // 发消息之后回调
+            if(appConfig.isSendMessageAfterCallback()){
+                callBackUtil.callBack(
+                        messageContent.getAppId(),
+                        Constants.CallBackCommand.SendMessageAfter,
+                        JSONObject.toJSONString(messageContent)
+                );
+            }
+
         });
 
 //        }else{

@@ -32,6 +32,12 @@ public interface ImGroupMemberService extends IService<ImGroupMember> {
 
     List<GroupMemberDTO> getGroupMember(String groupId, Integer appId);
 
+    /**
+     * 获取用户加入的群id
+     * @param memberId
+     * @param appId
+     * @return
+     */
     List<String> getJoined(String memberId, Integer appId);
 
     void transfer(String groupId,String oldOwner, String newOwner, Integer appId);
