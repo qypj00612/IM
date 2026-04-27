@@ -21,7 +21,15 @@ public enum MessageCommand implements Command {
     MSG_READED_NOTIFY(0x41D),
 
     //消息已读回执，给原消息发送方 1054
-    MSG_READED_RECEIPT(0x41E);
+    MSG_READED_RECEIPT(0x41E),
+
+    // 消息撤回
+    MSG_RECALL(0x41a),
+
+    // 消息撤回通知
+    MSG_RECALL_NOTIFY(0x41c),
+
+    MSG_RECALL_ACK(0x41B);
 
     private final int command;
 

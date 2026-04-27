@@ -103,7 +103,7 @@ public class P2PMessageService {
 
         String key = messageContent.getAppId()+
                 Constants.SeqConstants.P2PRedisSeq+
-                ConversationIdGenerate.generateP2PId(messageContent.getFromId(),messageContent.getToId());
+                ConversationIdGenerate.generateSeqP2PId(messageContent.getFromId(),messageContent.getToId());
         Long seq = redisSeq.seqIncrement(key);
         messageContent.setMessageSequence(seq);
 

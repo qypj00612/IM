@@ -1,5 +1,6 @@
-package com.lld.im.common.enums;
+package com.lld.im.common.enums.message;
 
+import com.lld.im.common.enums.ApplicationExceptionEnum;
 import lombok.Getter;
 
 @Getter

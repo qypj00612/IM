@@ -2,7 +2,7 @@ package com.lld.im.service.message.service;
 
 import com.lld.im.common.ResponseVO;
 import com.lld.im.common.config.AppConfig;
-import com.lld.im.common.enums.MessageErrorCode;
+import com.lld.im.common.enums.message.MessageErrorCode;
 import com.lld.im.common.enums.friendship.FriendshipErrorCode;
 import com.lld.im.common.enums.friendship.FriendshipStatusEnum;
 import com.lld.im.common.enums.group.GroupErrorCode;
@@ -11,7 +11,6 @@ import com.lld.im.common.enums.group.GroupMuteTypeEnum;
 import com.lld.im.common.enums.user.UserErrorCode;
 import com.lld.im.common.enums.user.UserForbiddenFlagEnum;
 import com.lld.im.common.enums.user.UserSilentFlagEnum;
-import com.lld.im.common.exception.ApplicationException;
 import com.lld.im.service.friendship.dao.ImFriendship;
 import com.lld.im.service.friendship.model.req.GetRelationshipReq;
 import com.lld.im.service.friendship.service.ImFriendshipService;

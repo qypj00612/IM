@@ -2,22 +2,34 @@ package com.lld.im.service.message.service;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateTime;
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lld.im.codec.pack.message.MessageReadPack;
+import com.lld.im.codec.pack.message.ReCallMessageNotifyPack;
 import com.lld.im.common.ResponseVO;
 import com.lld.im.common.constant.Constants;
+import com.lld.im.common.enums.DelFlagEnum;
 import com.lld.im.common.enums.command.Command;
 import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.enums.command.group.GroupEventCommand;
+import com.lld.im.common.enums.conversation.ConversationTypeEnum;
+import com.lld.im.common.enums.message.MessageErrorCode;
+import com.lld.im.common.model.ClientInfo;
 import com.lld.im.common.model.message.MessageReadedContent;
 import com.lld.im.common.model.message.MessageReceiveAckPack;
 import com.lld.im.common.model.message.OfflineMessageContent;
+import com.lld.im.common.model.message.ReCallMessageContent;
 import com.lld.im.common.model.req.SyncReq;
 import com.lld.im.common.model.resp.SyncResp;
 import com.lld.im.service.conversation.service.ImConversationSetService;
+import com.lld.im.service.message.dao.ImMessageBody;
+import com.lld.im.service.message.dao.mapper.ImMessageBodyMapper;
+import com.lld.im.service.message.seq.RedisSeq;
+import com.lld.im.service.utils.ConversationIdGenerate;
 import com.lld.im.service.utils.MessageProducer;
 import lombok.RequiredArgsConstructor;
-import org.apache.rocketmq.common.message.Message;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
@@ -38,6 +50,10 @@ public class MessageReceiveAckService {
     private final ImConversationSetService imConversationSetService;
 
     private final StringRedisTemplate stringRedisTemplate;
+
+    private final ImMessageBodyMapper imMessageBodyMapper;
+
+    private final RedisSeq redisSeq;
 
     /**
      * 消息收到确认
@@ -145,5 +161,110 @@ public class MessageReceiveAckService {
             resp.setCompleted(true);
         }
         return ResponseVO.successResponse(resp);
+    }
+
+    /**
+     * 消息撤回
+     * @param content
+     */
+    public void recallMessage(ReCallMessageContent content) {
+        // 修改历史消息的状态
+        // 修改离线消息的状态
+        // 回ack给发送方
+        // 同步给发送方其他端
+        // 分发给接收方
+
+        Long seq = redisSeq.seqIncrement(
+                content.getAppId()+
+                        Constants.SeqConstants.P2PRedisSeq+
+                        ConversationIdGenerate.generateSeqP2PId(content.getFromId(), content.getToId()));
+
+        ReCallMessageNotifyPack pack = new ReCallMessageNotifyPack();
+        pack.setFromId(content.getFromId());
+        pack.setToId(content.getToId());
+        pack.setMessageKey(content.getMessageKey());
+        pack.setMessageSequence(content.getMessageSequence());
+
+        Long messageTime = content.getMessageTime();
+        Long now = DateTime.now().getTime();
+        if(now - messageTime > 12000L){
+            ack(pack, ResponseVO.errorResponse(MessageErrorCode.MESSAGE_RECALL_TIME_OUT), content);
+            return;
+        }
+
+        LambdaQueryWrapper<ImMessageBody> eq = new LambdaQueryWrapper<ImMessageBody>()
+                .eq(ImMessageBody::getAppId, content.getAppId())
+                .eq(ImMessageBody::getMessageKey, content.getMessageKey());
+        ImMessageBody imMessageBody = imMessageBodyMapper.selectOne(eq);
+        if(imMessageBody == null){
+            ack(pack, ResponseVO.errorResponse(MessageErrorCode.MESSAGEBODY_IS_NOT_EXIST), content);
+        }
+        if(imMessageBody.getDelFlag()== DelFlagEnum.DELETE.getCode()){
+            ack(pack, ResponseVO.errorResponse(MessageErrorCode.MESSAGE_IS_RECALLED), content);
+        }
+
+        ImMessageBody body = new ImMessageBody();
+        body.setMessageKey(imMessageBody.getMessageKey());
+        body.setDelFlag(DelFlagEnum.DELETE.getCode());
+        imMessageBodyMapper.updateById(body);
+
+        if(content.getConversationType() == ConversationTypeEnum.P2P.getCode()){
+
+            String fromKey = content.getAppId() + Constants.RedisConstants.OfflineConstant+content.getFromId();
+            String fromConversationId = ConversationIdGenerate.genConversationId(content.getConversationType(), content.getFromId(), content.getToId());
+
+            String toKey = content.getAppId() + Constants.RedisConstants.OfflineConstant+content.getToId();
+            String toConversationId = ConversationIdGenerate.genConversationId(content.getConversationType(), content.getToId(), content.getFromId());
+
+            long messageKey = IdUtil.getSnowflakeNextId();
+
+            OfflineMessageContent offlineMessageContent = new OfflineMessageContent();
+            offlineMessageContent.setAppId(content.getAppId());
+            offlineMessageContent.setMessageKey(messageKey);
+            offlineMessageContent.setMessageBody(imMessageBody.getMessageBody());
+            offlineMessageContent.setMessageTime(imMessageBody.getMessageTime());
+            offlineMessageContent.setDelFlag(DelFlagEnum.DELETE.getCode());
+            offlineMessageContent.setFromId(content.getFromId());
+            offlineMessageContent.setToId(content.getToId());
+            offlineMessageContent.setMessageSequence(seq);
+            offlineMessageContent.setConversationType(ConversationTypeEnum.P2P.getCode());
+
+            offlineMessageContent.setConversationId(fromConversationId);
+            stringRedisTemplate.opsForZSet().add(fromKey, JSONObject.toJSONString(offlineMessageContent), messageKey);
+
+            offlineMessageContent.setConversationId(toConversationId);
+            stringRedisTemplate.opsForZSet().add(toKey, JSONObject.toJSONString(offlineMessageContent), messageKey);
+
+            ack(pack, ResponseVO.successResponse(), content);
+            messageProducer.sendToUserExceptClient(
+                    content.getFromId(),
+                    MessageCommand.MSG_RECALL_NOTIFY,
+                    ResponseVO.successResponse(),
+                    content,
+                    Constants.RocketConstants.MessageService2Im
+            );
+
+            messageProducer.sendToUser(
+                    content.getToId(),
+                    MessageCommand.MSG_RECALL_NOTIFY,
+                    content,
+                    content.getAppId(),
+                    Constants.RocketConstants.MessageService2Im
+            );
+        }else{
+
+        }
+
+    }
+
+    private void ack(ReCallMessageNotifyPack pack, ResponseVO responseVO, ClientInfo content) {
+        responseVO.setData(pack);
+        messageProducer.sendToUser(
+                pack.getFromId(),
+                MessageCommand.MSG_RECALL_ACK,
+                responseVO,
+                content,
+                Constants.RocketConstants.MessageService2Im
+        );
     }
 }

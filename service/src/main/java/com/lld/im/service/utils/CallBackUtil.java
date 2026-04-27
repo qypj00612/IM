@@ -17,13 +17,17 @@ public class CallBackUtil {
     private final HttpRequestUtils requestUtils;
     private final AppConfig appConfig;
 
+    private final SharedPoolExecutor sharedPoolExecutor;
+
     public void callBack(Integer appId, String command, String json){
-        try {
-            requestUtils.doPost(appConfig.getCallBackUrl(),Object.class,buildUrlParams(appId,command),json,null);
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("回调出现异常");
-        }
+        sharedPoolExecutor.submit(()->{
+            try {
+                requestUtils.doPost(appConfig.getCallBackUrl(),Object.class,buildUrlParams(appId,command),json,null);
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error("回调出现异常");
+            }
+        });
     }
 
     public ResponseVO beforeCallBack(Integer appId, String command, String json){

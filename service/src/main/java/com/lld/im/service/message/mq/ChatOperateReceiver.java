@@ -8,6 +8,7 @@ import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.model.message.MessageContent;
 import com.lld.im.common.model.message.MessageReadedContent;
 import com.lld.im.common.model.message.MessageReceiveAckPack;
+import com.lld.im.common.model.message.ReCallMessageContent;
 import com.lld.im.service.callback.service.CallBackService;
 import com.lld.im.service.message.service.MessageReceiveAckService;
 import com.lld.im.service.message.service.P2PMessageService;
@@ -50,6 +51,10 @@ public class ChatOperateReceiver implements RocketMQListener<MessageExt> {
                 // 消息已读
                 MessageReadedContent messageReadedContent = jsonObject.toJavaObject(MessageReadedContent.class);
                 messageReceiveAckService.readMark(messageReadedContent);
+            } else if (command == MessageCommand.MSG_RECALL.getCommand()) {
+                // 消息撤回
+                ReCallMessageContent content = JSONObject.toJavaObject(jsonObject, ReCallMessageContent.class);
+                messageReceiveAckService.recallMessage(content);
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -124,6 +124,7 @@ public class MessageStoreService {
                 offlineMessageContent.getFromId(),
                 offlineMessageContent.getToId()
         ));
+
         // 插入数据，将messageKey作为分值
         zset.add(
                 fromKey,
