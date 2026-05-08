@@ -79,6 +79,7 @@ public class GroupMessageService {
         Long l = redisSeq.seqIncrement(key);
         groupMessageContent.setMessageSequence(l);
         threadPoolExecutor.execute(()->{
+            // 将消息存入数据库 和 向量数据库中，以便ai查找
             messageStoreService.groupMessageStore(groupMessageContent);
 
             // 离线消息存储

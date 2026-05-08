@@ -1,9 +1,10 @@
 package com.lld.im.tcp.handler;
 
+
 import cn.hutool.core.date.DateTime;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.lld.im.codec.pack.LoginAckPack;
 import com.lld.im.codec.pack.LoginPack;
 import com.lld.im.codec.pack.MessagePack;
@@ -16,6 +17,7 @@ import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.ImConnectStatusEnums;
 import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.enums.command.SystemCommand;
+import com.lld.im.common.enums.command.ai.AIEventCommand;
 import com.lld.im.common.enums.command.group.GroupEventCommand;
 import com.lld.im.common.enums.command.user.UserEventCommand;
 import com.lld.im.common.model.UserClientDto;
@@ -223,6 +225,15 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             mqMessageProducer.sendMessage(
                     Constants.RocketConstants.IM_TO_SERVICE,
                     Constants.RocketConstants.Im2GroupService,
+                    msg
+            );
+        } else if (command == AIEventCommand.AI_INTELLIGENT_REPLY.getCommand()||
+                command == AIEventCommand.AI_GROUP_CHAT_SUMMARY.getCommand()||
+                command == AIEventCommand.AI_INTELLIGENT_SEARCH.getCommand()) {
+            // AI功能
+            mqMessageProducer.sendMessage(
+                    Constants.RocketConstants.IM_TO_SERVICE,
+                    Constants.RocketConstants.Im2AI,
                     msg
             );
         } else {

@@ -41,7 +41,8 @@ public class MqMessageReceiver {
                     Constants.RocketConstants.FriendShip2Im+" || "
                             +Constants.RocketConstants.GroupService2Im+" || "
                             +Constants.RocketConstants.MessageService2Im+" || "
-                            +Constants.RocketConstants.UserService2Im
+                            +Constants.RocketConstants.UserService2Im+" || "
+                            +Constants.RocketConstants.AI2Im
             );
 
             broadConsumer.subscribe(

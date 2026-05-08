@@ -1,6 +1,8 @@
 package com.lld.im.service.utils;
 
 
+import com.lld.im.common.enums.conversation.ConversationTypeEnum;
+
 public class ConversationIdGenerate {
 
     //A|B
@@ -18,5 +20,17 @@ public class ConversationIdGenerate {
 
     public static String genConversationId(Integer type, String fromId, String toId){
         return type + "_" + fromId + "_" + toId;
+    }
+
+    public static String genP2PConversationId(String fromId, String toId){
+        if(fromId.compareTo(toId) < 0){
+            return ConversationTypeEnum.P2P.getCode() + "_" + toId + "_" + fromId;
+        }else{
+            return ConversationTypeEnum.P2P.getCode() + "_" + fromId + "_" + toId;
+        }
+    }
+
+    public static String genGroupConversationId(String groupId){
+        return ConversationTypeEnum.GROUP.getCode() + "_" + groupId;
     }
 }

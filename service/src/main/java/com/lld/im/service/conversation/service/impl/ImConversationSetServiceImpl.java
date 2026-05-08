@@ -52,7 +52,24 @@ public class ImConversationSetServiceImpl extends ServiceImpl<ImConversationSetM
     private final WriteUserSeq writeUserSeq;
 
     public String genConversationId(Integer type, String fromId, String toId){
-        return type + "_" + fromId + "_" + toId;
+
+        // 单聊会话 大的 在前 小的 在后
+        if(type == ConversationTypeEnum.P2P.getCode()){
+            if(fromId.compareTo(toId) < 0){
+                return type + "_" + toId + "_" + fromId;
+            }else{
+                return type + "_" + fromId + "_" + toId;
+            }
+        } else {
+            // 群聊会话
+            return type + "_" + toId;
+        }
+
+    }
+
+    public String genConversationId(Integer type, String toId){
+        // 群聊会话
+        return type + "_" + toId;
     }
 
     @Override
@@ -61,9 +78,12 @@ public class ImConversationSetServiceImpl extends ServiceImpl<ImConversationSetM
         if(messageReadedContent.getConversationType() == ConversationTypeEnum.GROUP.getCode()){
             toId = messageReadedContent.getGroupId();
         }
-        String id = genConversationId(messageReadedContent.getConversationType(), messageReadedContent.getFromId(), toId);
+
+        String conversationId = genConversationId(messageReadedContent.getConversationType(), messageReadedContent.getFromId(), toId);
+        // 优化会话id
+        // String id = genConversationId(messageReadedContent.getConversationType(), messageReadedContent.getFromId(), toId);
         LambdaQueryWrapper<ImConversationSet> eq = new LambdaQueryWrapper<ImConversationSet>()
-                .eq(ImConversationSet::getConversationId, id);
+                .eq(ImConversationSet::getConversationId, conversationId);
         ImConversationSet imConversationSetEntity = imConversationSetMapper.selectOne(eq);
         ImConversationSet imConversationSet = new ImConversationSet();
 
@@ -71,7 +91,7 @@ public class ImConversationSetServiceImpl extends ServiceImpl<ImConversationSetM
 
         if(ObjectUtil.isNull(imConversationSetEntity)){
 
-            imConversationSet.setConversationId(id);
+            imConversationSet.setConversationId(conversationId);
             imConversationSet.setConversationType(messageReadedContent.getConversationType());
             imConversationSet.setFromId(messageReadedContent.getFromId());
             imConversationSet.setToId(toId);
@@ -84,7 +104,7 @@ public class ImConversationSetServiceImpl extends ServiceImpl<ImConversationSetM
             imConversationSetMapper.insert(imConversationSet);
 
         }else{
-            imConversationSetMapper.readMark(id, messageReadedContent.getAppId(), messageReadedContent.getMessageSequence(),seq);
+            imConversationSetMapper.readMark(conversationId, messageReadedContent.getAppId(), messageReadedContent.getMessageSequence(),seq);
         }
 
         writeUserSeq.writeUserSeq(messageReadedContent.getAppId(), messageReadedContent.getFromId(), Constants.SeqConstants.ConversationSeq, seq);

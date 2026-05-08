@@ -108,8 +108,9 @@ public class P2PMessageService {
         messageContent.setMessageSequence(seq);
 
         threadPoolExecutor.execute(()->{
-            // 将消息存入数据库中
+            // 将消息存入数据库 和 向量数据库中，以便ai查找
             messageStoreService.p2pMessageStore(messageContent);
+
             // 存储离线消息
             OfflineMessageContent offlineMessageContent = BeanUtil.copyProperties(messageContent, OfflineMessageContent.class);
             offlineMessageContent.setConversationType(ConversationTypeEnum.P2P.getCode());

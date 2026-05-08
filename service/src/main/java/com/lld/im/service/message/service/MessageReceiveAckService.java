@@ -30,6 +30,7 @@ import com.lld.im.service.message.seq.RedisSeq;
 import com.lld.im.service.utils.ConversationIdGenerate;
 import com.lld.im.service.utils.MessageProducer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
@@ -116,9 +117,16 @@ public class MessageReceiveAckService {
      * @return
      */
     public ResponseVO syncOfflineMessage(SyncReq req) {
+        if(req.getMaxLimit()>100){
+            req.setMaxLimit(100);
+        }
         SyncResp<OfflineMessageContent> resp = new SyncResp<>();
-        String key = req.getAppId()+Constants.RedisConstants.OfflineConstant+req.getOperator();
+
+        String key = req.getAppId()+Constants.RedisConstants.OfflineConstantIndex +req.getOperator();
+        String hashKey = req.getAppId()+Constants.RedisConstants.OfflineConstant +req.getOperator();
+
         ZSetOperations<String, String> stringStringZSetOperations = stringRedisTemplate.opsForZSet();
+        HashOperations<String, Object, Object> hash = stringRedisTemplate.opsForHash();
 
         // 逆序取第一条消息（获取 score 最大的那条消息，也就是最新消息）
         Set<ZSetOperations.TypedTuple<String>> typedTuples = stringStringZSetOperations.reverseRangeWithScores(key, 0, 0);
@@ -139,11 +147,17 @@ public class MessageReceiveAckService {
                     req.getMaxLimit() // 最多拉几条
             );
 
-            // 把 ZSet 里的 value（JSON字符串） 转成离线消息实体
-            for (ZSetOperations.TypedTuple<String> data : query) {
-                OfflineMessageContent content = JSONObject.parseObject(data.getValue(), OfflineMessageContent.class);
-                respData.add(content);
+            // 利用 ZSet 里的 value（索引） 查询hash中的消息并转为消息实体
+            List<Object> objects = hash.multiGet(hashKey, new ArrayList<>(query));
+            for (Object object : objects) {
+                OfflineMessageContent offlineMessageContent = JSONObject.parseObject(object.toString(), OfflineMessageContent.class);
+                respData.add(offlineMessageContent);
             }
+
+//            for (ZSetOperations.TypedTuple<String> data : query) {
+//                OfflineMessageContent content = JSONObject.parseObject(hash.get(hashKey, data.getValue()).toString(), OfflineMessageContent.class);
+//                respData.add(content);
+//            }
             resp.setDataList(respData);
 
             if(CollUtil.isNotEmpty(respData)){
@@ -187,11 +201,13 @@ public class MessageReceiveAckService {
 
         Long messageTime = content.getMessageTime();
         Long now = DateTime.now().getTime();
+        // 超出撤回时间则不能撤回
         if(now - messageTime > 12000L){
             ack(pack, ResponseVO.errorResponse(MessageErrorCode.MESSAGE_RECALL_TIME_OUT), content);
             return;
         }
 
+        // 修改历史消息的状态
         LambdaQueryWrapper<ImMessageBody> eq = new LambdaQueryWrapper<ImMessageBody>()
                 .eq(ImMessageBody::getAppId, content.getAppId())
                 .eq(ImMessageBody::getMessageKey, content.getMessageKey());
@@ -210,17 +226,21 @@ public class MessageReceiveAckService {
 
         if(content.getConversationType() == ConversationTypeEnum.P2P.getCode()){
 
-            String fromKey = content.getAppId() + Constants.RedisConstants.OfflineConstant+content.getFromId();
-            String fromConversationId = ConversationIdGenerate.genConversationId(content.getConversationType(), content.getFromId(), content.getToId());
+            String conversationId = ConversationIdGenerate.genP2PConversationId(content.getFromId(), content.getToId());
 
-            String toKey = content.getAppId() + Constants.RedisConstants.OfflineConstant+content.getToId();
-            String toConversationId = ConversationIdGenerate.genConversationId(content.getConversationType(), content.getToId(), content.getFromId());
+            // String fromKey = content.getAppId() + Constants.RedisConstants.OfflineConstantIndex +content.getFromId();
+            String hashFromKey = content.getAppId() + Constants.RedisConstants.OfflineConstant +content.getFromId();
+            //String fromConversationId = ConversationIdGenerate.genConversationId(content.getConversationType(), content.getFromId(), content.getToId());
 
-            long messageKey = IdUtil.getSnowflakeNextId();
+            // String toKey = content.getAppId() + Constants.RedisConstants.OfflineConstantIndex +content.getToId();
+            String hashToKey = content.getAppId() + Constants.RedisConstants.OfflineConstant +content.getToId();
+            //String toConversationId = ConversationIdGenerate.genConversationId(content.getConversationType(), content.getToId(), content.getFromId());
+
+             //long messageKey = IdUtil.getSnowflakeNextId();
 
             OfflineMessageContent offlineMessageContent = new OfflineMessageContent();
             offlineMessageContent.setAppId(content.getAppId());
-            offlineMessageContent.setMessageKey(messageKey);
+            //offlineMessageContent.setMessageKey(messageKey);
             offlineMessageContent.setMessageBody(imMessageBody.getMessageBody());
             offlineMessageContent.setMessageTime(imMessageBody.getMessageTime());
             offlineMessageContent.setDelFlag(DelFlagEnum.DELETE.getCode());
@@ -229,11 +249,13 @@ public class MessageReceiveAckService {
             offlineMessageContent.setMessageSequence(seq);
             offlineMessageContent.setConversationType(ConversationTypeEnum.P2P.getCode());
 
-            offlineMessageContent.setConversationId(fromConversationId);
-            stringRedisTemplate.opsForZSet().add(fromKey, JSONObject.toJSONString(offlineMessageContent), messageKey);
+            offlineMessageContent.setConversationId(conversationId);
+            //stringRedisTemplate.opsForZSet().add(fromKey, JSONObject.toJSONString(offlineMessageContent), messageKey);
+            stringRedisTemplate.opsForHash().put(hashFromKey, content.getMessageKey().toString(), JSONObject.toJSONString(offlineMessageContent));
 
-            offlineMessageContent.setConversationId(toConversationId);
-            stringRedisTemplate.opsForZSet().add(toKey, JSONObject.toJSONString(offlineMessageContent), messageKey);
+            offlineMessageContent.setConversationId(conversationId);
+            //stringRedisTemplate.opsForZSet().add(toKey, JSONObject.toJSONString(offlineMessageContent), messageKey);
+            stringRedisTemplate.opsForHash().put(hashToKey, content.getMessageKey().toString(), JSONObject.toJSONString(offlineMessageContent));
 
             ack(pack, ResponseVO.successResponse(), content);
             messageProducer.sendToUserExceptClient(

@@ -1,0 +1,49 @@
+spring:
+  ai:
+    vectorstore:
+      milvus:
+        client:
+          host: 192.168.181.128 # 你的 Milvus 地址
+          port: 19530
+          # 若设置了密码，加上：
+          #          username: root
+          #          password: milvus
+        collectionName: rag_vector # 集合名
+        initializeSchema: true # 自动创建集合（必须开启）
+        indexType: IVF_FLAT # 索引类型
+        metricType: COSINE # 相似度度量
+        embedding-dimension: 1536 # 向量维度（OpenAI/豆包是1536）
+
+    openai:
+      api-key: ${OPENAI_API_KEY}  # 从环境变量读取，安全起见别硬编码
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen3.5-plus    # 指定千问3.5模型
+          temperature: 0.7          # 创造性参数，0-1之间
+      embedding:
+        options:
+          model: text-embedding-v1
+rocketmq:
+  name-server: 192.168.181.128:9876
+  producer:
+    group: default
+    send-message-timeout: 15000  # 延长到15秒，适配容器
+    retry-times-when-send-failed: 5  # 增加重试
+    retry-times-when-send-async-failed: 5
+    max-message-size: 4194304  # 增大消息体限制（避免大消息被拒绝）
+  consumer:
+    pull-batch-size: 10000
+#    mcp:
+#      client:
+#        name: spring-ai-mcp-client
+#        sse:
+#          connections:
+#            server1:
+#              url: http://localhost:9090
+#              sse-endpoint: /sse
+#        toolcallback:
+#          enabled: true
+
+server:
+  port: 8088
